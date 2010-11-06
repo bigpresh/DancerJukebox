@@ -1,7 +1,7 @@
 
 <p>
 Current song: <b>[% current.title %]</b> by <b>[% current.artist %]</b>
-(<a href="/skipnext">Skip song</a>)
+(<a href="/control/skip">Skip song</a>)
 </p>
 
 <div id="playlist">

@@ -32,7 +32,7 @@ get '/' => sub {
     };
 };
 
-get '/skipnext' => sub { mpd->next; redirect '/'; };
+get '/control/skip' => sub { mpd->next; redirect '/'; };
 
 get '/control/play/:id' => sub { mpd->play(params->{id}); redirect '/'; };
 
