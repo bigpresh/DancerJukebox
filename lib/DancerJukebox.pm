@@ -16,7 +16,7 @@ get '/' => sub {
     # TODO: This is very inefficient for a large playlist; look for a way to get
     # only the songs we want
     my @playlist = mpd->playlist->as_items;
-    my @songs_around_current = @playlist[ 
+    my @songs_around_current = grep { $_ } @playlist[ 
         $current_song->pos - config->{playlist}{tracks_before_current}
         ..
         $current_song->pos + config->{playlist}{tracks_after_current}
