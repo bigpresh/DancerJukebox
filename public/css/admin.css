@@ -1,0 +1,11 @@
+#skip { float:right; }
+#skip A { 
+    display: block;
+    width: 100px;
+    height: 80px;
+    padding: 20px;
+    background: #ddd;
+    border: 1px solid #008;
+}
+
+

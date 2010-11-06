@@ -67,7 +67,10 @@ post '/enqueue' => sub {
 # house drinking my beer, so it's all good.
 get '/admin' => sub {
     my $queued_songs = _get_queued_songs();    
-    template 'admin', { queued => $queued_songs}, { layout => undef };
+    template 'admin', { 
+        queued => $queued_songs,
+        current => mpd->current,
+    }, { layout => undef };
 };
 get '/admin/skip' => sub { mpd->next; redirect '/admin'; };
 

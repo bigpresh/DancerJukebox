@@ -1,11 +1,14 @@
 <html>
 <head>
 <title>DancerJukebox mobile admin</title>
+<link rel="stylesheet" href="/css/admin.css" />
 </head>
 
 <body>
 <h1>DancerJukebox admin</h1>
 
+<p id="skip"><a href="/control/skip">Skip song</a></p> 
+<p id="current">Current song: [% current.title %]<p>
 [% IF queued %]
 
     <form method="post" action="/admin/dequeue">
