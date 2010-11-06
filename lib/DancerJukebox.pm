@@ -2,7 +2,6 @@ package DancerJukebox;
 use Dancer ':syntax';
 use Dancer::Plugin::Database;
 use Dancer::Plugin::DebugDump;
-use lib '/home/davidp/dev/git/Dancer-Plugin-MPD/lib';
 use Dancer::Plugin::MPD;
 
 
@@ -13,7 +12,6 @@ get '/' => sub {
     if (!$current_song) {
         die "No current song!";
     }
-    debug "Currently playing:" . $current_song->title || '';
 
     # TODO: This is very inefficient for a large playlist; look for a way to get
     # only the songs we want
@@ -62,5 +60,19 @@ post '/enqueue' => sub {
     $sth->execute($_) for @songs_to_queue;
     redirect '/';
 };
+
+
+# Now, fork a process that will watch MPD, and, when a song is about to end, see
+# if we have anything in the queue to play, and, if so, play it:
+my $pid = fork();
+if (!defined $pid) {
+    die "Failed to fork queue watcher";
+} elsif ($pid == 0) {
+    # This code is executed by the child process
+    require DancerJukebox::PlayFromQueue;
+    DancerJukebox::PlayFromQueue::watch_queue();
+} else {
+    debug("Forked PID $pid");
+}
 
 true;
