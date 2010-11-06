@@ -1,3 +1,9 @@
+BODY {
+    background: black;
+    color: white;
+    font-family: Verdana, Arial, Helvetica, sans-serif;
+}
+
 #skip { float:right; }
 #skip A { 
     display: block;
