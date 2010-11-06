@@ -17,7 +17,7 @@ Tick the songs you want to queue, then hit the bloody great big queue button.
 <form method="post" action="/enqueue">
 
 <div style="float:right;margin-right: 80px;">
-<input type="submit"  value="Queue selected songs" 
+<input type="submit"  value="Queue selected" 
     style="width: 150px; height: 125px;">
 </div>
 
