@@ -1,0 +1,25 @@
+<html>
+<head>
+<title>DancerJukebox mobile admin</title>
+</head>
+
+<body>
+<h1>DancerJukebox admin</h1>
+
+[% IF queued %]
+
+    <form method="post" action="/admin/dequeue">
+
+    [% FOR song IN queued %]
+        <label>
+        <input type="checkbox" name="id" value="[% song.id %]" />
+        [% song.path %]
+        </label>
+        <br />
+    [% END %]
+    <input type="submit" value="De-queue selected" />
+    </form>
+[% END %]
+</body>
+</html>
+

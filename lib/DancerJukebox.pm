@@ -23,9 +23,7 @@ get '/' => sub {
     ];
 
     # See what's currently queued:
-    my $sth = database->prepare('select * from queue where played is null');
-    $sth->execute;
-    my $queued_songs = $sth->fetchall_arrayref({});
+    my $queued_songs = _get_queued_songs();
     debug_dump("queued songs" => $queued_songs);
     template 'index' => {
         current => $current_song,
@@ -61,6 +59,33 @@ post '/enqueue' => sub {
     redirect '/';
 };
 
+# At the moment, this is a very dumb page intended to be called from a mobile
+# device to monitor the queue and dequeue anything too crap/offensive/whatever.
+# In future versions, it'll probably require authentication, but no need for
+# that level of complexity for a simple app I just use at parties.  I trust the
+# people who could potentially access this; if I didn't, they wouldn't be in my
+# house drinking my beer, so it's all good.
+get '/admin' => sub {
+    my $queued_songs = _get_queued_songs();    
+    template 'admin', { queued => $queued_songs}, { layout => undef };
+};
+get '/admin/skip' => sub { mpd->next; redirect '/admin'; };
+
+
+post '/admin/dequeue' => sub {
+    my @dequeue_ids = ref params->{id} ? @{ params->{id} } : params->{id};
+    my $sth = database->prepare('delete from queue where id = ?');
+    $sth->execute($_) for @dequeue_ids;
+    redirect '/admin';
+};
+
+# Fetch the queued songs from the database.
+sub _get_queued_songs {
+    my $sth = database->prepare('select * from queue where played is null');
+    $sth->execute;
+    return  $sth->fetchall_arrayref({});
+}
+
 
 # Now, fork a process that will watch MPD, and, when a song is about to end, see
 # if we have anything in the queue to play, and, if so, play it:
@@ -74,5 +99,6 @@ if (!defined $pid) {
 } else {
     debug("Forked PID $pid");
 }
+
 
 true;
