@@ -1,0 +1,19 @@
+=head1 NAME
+
+DancerJukebox
+
+=head1 DESCRIPTION
+
+A Dancer-powered web application to control an MPD server, allowing you to
+search for songs and add the ones you want to play to a queue.
+
+Ideal for parties, to let everyone add music they want to hear to a play queue.
+
+Essentially, a digital jukebox.
+
+
+=head1 AUTHOR
+
+David Precious <davidp@preshweb.co.uk>
+
+
