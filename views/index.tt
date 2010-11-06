@@ -1,0 +1,37 @@
+
+<p>
+Current song: <b>[% current.title %]</b> by <b>[% current.artist %]</b>
+(<a href="/skipnext">Skip song</a>)
+</p>
+
+<div id="playlist">
+
+<h2>Current Playlist</h2>
+<p>(This shows the songs around the current song, not the entire playlist)</p>
+
+<ul id="playlist_snippet">
+[% FOR song IN playlist_snippet %]
+<li>[% IF song.pos == current.pos %]<b>[% END %]
+    <a href="/control/play/[% song.pos %]" class="jumptopos">
+    [% song.title %] by [% song.artist %]
+    [% IF song.pos == current.pos %]</b>[% END %]
+    </a>
+</li>
+[% END %]
+</ul>
+
+</div>
+
+<div id="queue">
+<h2>Current Queue</h2>
+
+<p>Songs currrently queued: 
+
+<ul id="queued_songs">
+[% FOR song IN queued_songs %]
+<li>[% song.path %]</li>
+[% END %]
+</ul>
+
+
+</div>

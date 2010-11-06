@@ -1,0 +1,40 @@
+<h1>Search for songs</h1>
+<form method="get">
+Search for: <input type="text" name="q" />
+<input type="submit">
+</form>
+
+
+
+[% IF results %]
+
+<h1>Search results</h1>
+
+<p>
+Tick the songs you want to queue, then hit the bloody great big queue button.
+</p>
+
+<form method="post" action="/enqueue">
+
+<div style="float:right;margin-right: 80px;">
+<input type="submit"  value="Queue selected songs" 
+    style="width: 150px; height: 125px;">
+</div>
+
+
+<ul>
+[% FOREACH song IN results %]
+<li>
+<input type="checkbox" name="song" value="[% song.file %]" />
+[% song.title %] by [% song.artist %] from [% song.album %]</li>
+[% END %]
+</ul>
+
+<p>Found [% results.size %] results</p>
+
+
+</form>
+
+[% END %]
+
+

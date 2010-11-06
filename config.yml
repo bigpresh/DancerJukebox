@@ -1,0 +1,21 @@
+layout: "main"
+logger: "file"
+template: template_toolkit
+appname: "DancerJukebox"
+playlist:
+    tracks_before_current: 4
+    tracks_after_current: 6
+engines:
+    template_toolkit:
+        start_tag: '[%'
+        end_tag: '%]'
+plugins:
+    Database:
+        driver: mysql
+        host: localhost
+        database: mpdqueue
+        username: mpdqueue
+        password: wibble
+
+
+

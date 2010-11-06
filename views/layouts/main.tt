@@ -1,0 +1,97 @@
+<html>
+<head>
+<title>Music Queue Manager</title>
+
+<style>
+#header {
+    width: 95%;
+    margins: auto;
+    padding: 15px;
+    align: auto;
+    border: 1px solid yellow;
+    background: #008;
+    color: yellow;
+    font-family: Bitsumishi;
+}
+#header #name {
+    font-size: 26px;
+    font-weight: bold;
+}
+#header #author {
+    font-size: 18px;
+    font-weight: bold;
+}
+INPUT {
+    font-size: 16px;
+    font-weight: bold;
+    padding: 4px;
+}
+
+UL#nav LI {
+    display: inline;
+    margin: 10px;
+}
+UL#nav A {
+    display: block;
+    width: 120px;
+    float: left;
+    padding: 8px;
+    margin: 10px;
+    background: silver;
+    border: 1px solid #008;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+#playlist {
+    width: 500px;
+    float: left;
+}
+#queue {
+    width: 500px;
+    float: right;
+}
+#footer {
+    border-top: 1px solid #008;
+}
+BODY {
+    background: url(/images/turntable.jpg) no-repeat fixed;
+    font-family:  Verdana, Arial;
+}
+P {
+    font-size: 14px;
+}
+
+#queued_songs LI {
+    font-size: 11px;
+}
+
+#playlist_snippet LI {
+    font-size: 14px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="header">
+<div id="name">Music Queue Manager</div>
+<div id="author">by David Precious</div>
+</div>
+<ul id="nav">
+<li><a href="/">Home</a></li>
+<li><a href="/search">Search</a></li>
+</ul>
+<br clear="both" />
+
+[% content %]
+
+<br clear="both" />
+
+<div id="footer">
+Music Queue Manager by <a href="http://blog.preshweb.co.uk/">David Precious</a>,
+powered by <a href="http://www.perldancer.org/">Dancer</a>
+</div>
+
+</body>
+</html>
