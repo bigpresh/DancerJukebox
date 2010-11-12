@@ -11,6 +11,38 @@ Ideal for parties, to let everyone add music they want to hear to a play queue.
 
 Essentially, a digital jukebox.
 
+=head1 CONFIGURATION
+
+Ships with an SQLite database ready-to-use, so if you have L<DBD::SQLite>
+installed and want to just use SQLite, it should Just Work out of the box.
+
+If you'd rather use MySQL or another database, you'll need to update the
+C<config.yml> file with the appropriate details (see L<Dancer::Plugin::Database>
+for details on how to configure database connections), and set up the queue
+table.  SQL 'CREATE TABLE' statements for MySQL and SQLite are included.
+
+By default, the app will listen on port 4000; this can be changed by updating
+C<config.yml> appropriately.
+
+=head1 USAGE
+
+Start the app:
+
+  ./DancerJukebox.pl
+
+Assuming all goes well, you should see something like:
+
+  >> Dancer server 7969 listening on http://0.0.0.0:4000
+
+Then, point your browser at http://localhost:4000/ (or the name of the machine
+you're running this on, if it's not the same machine you want to control it
+from), and have fun!
+
+=head1 BUGS/CONTRIBUTING
+
+Bug reports / patches / feature requests / contributions always welcome.  Feel
+free to email me, or find me on irc.perl.org in #dancer.
+
 
 =head1 AUTHOR
 
