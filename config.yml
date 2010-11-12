@@ -11,11 +11,6 @@ engines:
         end_tag: '%]'
 plugins:
     Database:
-        driver: mysql
-        host: localhost
-        database: mpdqueue
-        username: mpdqueue
-        password: wibble
-
-
+        driver: SQLite
+        database: queuedb.sqlite
 
