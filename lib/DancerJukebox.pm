@@ -3,7 +3,7 @@ use Dancer ':syntax';
 use Dancer::Plugin::Database;
 use Dancer::Plugin::DebugDump;
 use Dancer::Plugin::MPD;
-
+use DateTime;
 
 our $VERSION = '0.1';
 
@@ -52,10 +52,12 @@ post '/enqueue' => sub {
     push @songs_to_queue, 
         ref params->{song} ? @{ params->{song} } : params->{song};
     debug_dump("Songs to queue: " => \@songs_to_queue);
+    my $datetime = DateTime->now;
+    my $queued_timestamp = join ' ', $datetime->ymd, $datetime->hms;
     my $sth = database->prepare(
-        'insert into queue (path, queued) values (?, now())'
-    );
-    $sth->execute($_) for @songs_to_queue;
+        'insert into queue (path, queued) values (?,?)'
+    ) or die "Database error: " . database->errstr;
+    $sth->execute($_, $queued_timestamp) for @songs_to_queue;
     redirect '/';
 };
 
@@ -85,6 +87,9 @@ post '/admin/dequeue' => sub {
 # Fetch the queued songs from the database.
 sub _get_queued_songs {
     my $sth = database->prepare('select * from queue where played is null');
+    if (!$sth) {
+        die "Database error: " . database->errstr;
+    }
     $sth->execute;
     return  $sth->fetchall_arrayref({});
 }
