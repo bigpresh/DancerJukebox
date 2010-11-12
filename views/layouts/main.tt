@@ -1,6 +1,6 @@
 <html>
 <head>
-<title>[% config.appname %]</title>
+<title>DancerJukebox</title>
 
 <link rel="stylesheet" href="/css/style.css" />
 </head>
@@ -8,7 +8,7 @@
 <body>
 
 <div id="header">
-<div id="name">Music Queue Manager</div>
+<div id="name">DancerJukebox</div>
 <div id="author">by David Precious</div>
 </div>
 <ul id="nav">
@@ -22,7 +22,8 @@
 <br clear="both" />
 
 <div id="footer">
-Music Queue Manager by <a href="http://blog.preshweb.co.uk/">David Precious</a>,
+<a href="http://github.com/bigpresh/DancerJukebox">DancerJukebox</>
+by <a href="http://blog.preshweb.co.uk/">David Precious</a>,
 powered by <a href="http://www.perldancer.org/">Dancer</a>
 </div>
 
