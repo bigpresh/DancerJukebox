@@ -5,6 +5,7 @@ use Dancer ':syntax';
 use Dancer::Plugin::Database;
 use Dancer::Plugin::DebugDump;
 use Dancer::Plugin::MPD;
+use DateTime;
 
 sub watch_queue {
     mainloop:
@@ -74,9 +75,11 @@ sub watch_queue {
     }
     my $delete_sth;
     sub mark_played {
+        my $datetime = DateTime->now;
+        my $datestamp = join ' ', $datetime->ymd, $datetime->hms;
         $delete_sth ||= 
-            database->prepare('update queue set played = now() where id = ?');
-        $delete_sth->execute(shift)
+            database->prepare('update queue set played = ? where id = ?');
+        $delete_sth->execute($datestamp, shift)
             or die "Failed to execute query - " . database->errstr;
         return 1;
     }
