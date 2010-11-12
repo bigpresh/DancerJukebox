@@ -18,6 +18,7 @@ WriteMakefile(
         'Dancer::Plugin::MPD' => 0,
         'Dancer::Plugin::Database' => 0,
         'Dancer::Plugin::DebugDump' => 0,
+        'DateTime'   => 0,
     },
     dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean               => { FILES => 'DancerJukebox-*' },
