@@ -84,6 +84,15 @@ post '/admin/dequeue' => sub {
     redirect '/admin';
 };
 
+
+get '/ajax/currentsong' => sub { 
+    my $current = mpd->current;
+    to_json({
+        title => $current->title,
+        artist => $current->artist,
+    });
+};
+
 # Fetch the queued songs from the database.
 sub _get_queued_songs {
     my $sth = database->prepare('select * from queue where played is null');

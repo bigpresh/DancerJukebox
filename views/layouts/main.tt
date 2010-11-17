@@ -1,8 +1,30 @@
 <html>
 <head>
 <title>DancerJukebox</title>
-
+<script
+src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js"></script>
 <link rel="stylesheet" href="/css/style.css" />
+
+<script>
+function update_current_song() {
+    $.getJSON('/ajax/currentsong', function(song) {
+            $('#currentsong').html(
+                "Now playing <b>" + song.title + "</b> by <b>" + song.artist
+                + "</b>"
+            );
+    });
+    window.setTimeout(update_current_song, 4000);
+}
+$(document).ready(function(){
+    update_current_song();
+    $('#skipnext').click(function(){
+        $.getJSON('/control/skip');
+        update_current_song();
+        alert("OK, skipping");
+        return false;
+    });
+});
+</script>
 </head>
 
 <body>
@@ -16,6 +38,11 @@
 <li><a href="/search">Search</a></li>
 </ul>
 <br clear="both" />
+
+<p>
+<span id="currentsong"></span>
+<a href="/control/skipnext" id="skipnext">(skip)</a>
+</p>
 
 [% content %]
 
