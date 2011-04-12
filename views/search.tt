@@ -26,7 +26,12 @@ Tick the songs you want to queue, then hit the bloody great big queue button.
 [% FOREACH song IN results %]
 <li><label>
 <input type="checkbox" name="song" value="[% song.file %]" />
-[% song.title %] by [% song.artist %] from [% song.album %]</label></li>
+[% IF song.title %]
+[% song.title %] by [% song.artist %] from [% song.album %]
+[% ELSE %]
+[% song.file %]
+[% END %]
+</label></li>
 [% END %]
 </ul>
 
