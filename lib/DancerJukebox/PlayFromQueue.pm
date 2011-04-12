@@ -67,8 +67,22 @@ sub watch_queue {
 {
     my $fetch_next_sth;
     sub next_in_queue {
+        # Annoyingly, the syntax to randomly select a row varies depending on
+        # the DB engine:
+        my %order_by_rand = (
+            mysql => 'ORDER BY RAND()',
+            sqlite => 'ORDER BY RANDOM()',
+        );
+        my $order_by;
+        if (config->{random}) {
+            $order_by = $order_by_rand{ lc database->{Driver}{Name} }
+                or die "Don't know how to get random rows with this"
+                    . " database engine!";
+        } else {
+            $order_by = 'queued ASC';
+        }
         $fetch_next_sth ||= database->prepare(
-            'select * from queue where played is null order by id asc limit 1');
+            "select * from queue where played is null $order_by limit 1");
         $fetch_next_sth->execute()
             or die "Failed to execute query - " . database->errstr;
         return $fetch_next_sth->fetchrow_hashref;
