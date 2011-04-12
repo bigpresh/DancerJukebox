@@ -3,6 +3,7 @@ logger: "file"
 template: template_toolkit
 appname: "DancerJukebox"
 port: 4000
+random: 1
 playlist:
     tracks_before_current: 4
     tracks_after_current: 6
