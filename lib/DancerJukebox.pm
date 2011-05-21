@@ -54,10 +54,9 @@ post '/enqueue' => sub {
     debug_dump("Songs to queue: " => \@songs_to_queue);
     my $datetime = DateTime->now;
     my $queued_timestamp = join ' ', $datetime->ymd, $datetime->hms;
-    my $sth = database->prepare(
-        'insert into queue (path, queued) values (?,?)'
-    ) or die "Database error: " . database->errstr;
-    $sth->execute($_, $queued_timestamp) for @songs_to_queue;
+    database->quick_insert('queue', 
+        { path => $_, queued_timestamp => $queued_timestamp }
+    ) for @songs_to_queue;
     redirect '/';
 };
 
@@ -79,8 +78,7 @@ get '/admin/skip' => sub { mpd->next; redirect '/admin'; };
 
 post '/admin/dequeue' => sub {
     my @dequeue_ids = ref params->{id} ? @{ params->{id} } : params->{id};
-    my $sth = database->prepare('delete from queue where id = ?');
-    $sth->execute($_) for @dequeue_ids;
+    database->quick_delete('queue', { id => $_ }) for @dequeue_ids;
     redirect '/admin';
 };
 
