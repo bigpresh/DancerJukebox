@@ -42,4 +42,10 @@ Tick the songs you want to queue, then hit the bloody great big queue button.
 
 [% END %]
 
+<script>
+$(document).ready(function() {
+    // focus on the first text input field in the first field on the page
+    $("input[type='text']:first", document.forms[0]).focus();
+});
+</script>
 
