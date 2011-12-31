@@ -55,7 +55,7 @@ post '/enqueue' => sub {
     my $datetime = DateTime->now;
     my $queued_timestamp = join ' ', $datetime->ymd, $datetime->hms;
     database->quick_insert('queue', 
-        { path => $_, queued_timestamp => $queued_timestamp }
+        { path => $_, queued => $queued_timestamp }
     ) for @songs_to_queue;
     redirect '/';
 };
