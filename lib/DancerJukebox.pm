@@ -7,6 +7,14 @@ use DateTime;
 
 our $VERSION = '0.1';
 
+# We always want to be in repeat & random mode:
+hook 'mpd_connected' => sub {
+    my $mpd = shift;
+    $mpd->repeat(1);
+    $mpd->random(1);
+    $mpd->play;
+};
+
 get '/' => sub {
     my $current_song = mpd->current;
     if (!$current_song) {
