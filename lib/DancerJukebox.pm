@@ -31,7 +31,7 @@ get '/' => sub {
         $current_song->pos + config->{playlist}{tracks_after_current}
         )
     {
-        if (my $song = @playlist[$pos]) {
+        if (my $song = $playlist[$pos]) {
             push @songs_around_current, $song;
         }
     }
