@@ -40,6 +40,7 @@ get '/' => sub {
     # See what's currently queued:
     my $queued_songs = _get_queued_songs();
     debug_dump("queued songs" => $queued_songs);
+
     template 'index' => {
         current => $current_song,
         playlist_snippet => \@songs_around_current,
@@ -59,6 +60,20 @@ get '/search' => sub {
         @results = mpd->collection->songs_with_filename_partial($search);
     }
     template 'search' => { results => \@results };
+};
+
+# Listing most-played songs
+get '/popular' => sub {
+    # TODO: configurable number of most-played songs
+    # TODO: fetch title for each song (or store titles when queuing)
+    my $sth = database->prepare(<<QUERY);
+select path, count(*) as times_queued from queue
+group by path order by times_queued desc limit 40
+QUERY
+    $sth->execute;
+    my $popular = $sth->fetchall_arrayref({});
+    debug "Popular songs: ", $popular;
+    template 'popular' => { popular => $popular };
 };
 
 # Adding songs to the queue:

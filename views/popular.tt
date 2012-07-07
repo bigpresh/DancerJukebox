@@ -1,0 +1,44 @@
+
+<h1>Most popular songs</h1>
+
+<p>
+The following are the most commonly played songs on this DancerJukebox install.
+</p>
+
+<p>
+Tick the songs you want to queue, then hit the bloody great big queue button.
+</p>
+
+<form method="post" action="/enqueue">
+
+<div style="float:right;margin-right: 80px;">
+<input type="submit"  value="Queue selected" 
+    style="width: 150px; height: 125px;">
+</div>
+
+
+<ul>
+[% FOREACH song IN popular %]
+<li><label>
+<input type="checkbox" name="song" value="[% song.path %]" />
+[% IF song.title %]
+[% song.title %]
+[% ELSE %]
+[% song.path %]
+[% END %]
+</label></li>
+[% END %]
+</ul>
+
+
+
+</form>
+
+
+<script>
+$(document).ready(function() {
+    // focus on the first text input field in the first field on the page
+    $("input[type='text']:first", document.forms[0]).focus();
+});
+</script>
+

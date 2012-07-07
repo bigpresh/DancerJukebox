@@ -36,6 +36,7 @@ $(document).ready(function(){
 <ul id="nav">
 <li><a href="/">Home</a></li>
 <li><a href="/search">Search</a></li>
+<li><a href="/popular">Popular songs</a></li>
 </ul>
 <br clear="both" />
 
