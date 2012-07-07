@@ -108,12 +108,7 @@ get '/ajax/currentsong' => sub {
 
 # Fetch the queued songs from the database.
 sub _get_queued_songs {
-    my $sth = database->prepare('select * from queue where played is null');
-    if (!$sth) {
-        die "Database error: " . database->errstr;
-    }
-    $sth->execute;
-    return  $sth->fetchall_arrayref({});
+    return [ database->quick_select('queue', { played => undef }) ];
 }
 
 
