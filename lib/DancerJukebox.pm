@@ -68,7 +68,7 @@ get '/popular' => sub {
     # TODO: fetch title for each song (or store titles when queuing)
     my $sth = database->prepare(<<QUERY);
 select path, count(*) as times_queued from queue
-group by path order by times_queued desc limit 40
+group by path order by times_queued desc limit 50
 QUERY
     $sth->execute;
     my $popular = $sth->fetchall_arrayref({});
