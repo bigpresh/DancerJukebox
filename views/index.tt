@@ -8,7 +8,11 @@
 [% FOR song IN playlist_snippet %]
 <li>[% IF song.pos == current.pos %]<b>[% END %]
     <a href="/control/play/[% song.pos %]" class="jumptopos">
+    [% IF song.title %]
     [% song.title %] by [% song.artist %]
+    [% ELSE %]
+    [% song.file %]
+    [% END %]
     [% IF song.pos == current.pos %]</b>[% END %]
     </a>
 </li>
