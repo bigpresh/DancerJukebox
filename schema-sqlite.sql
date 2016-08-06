@@ -5,4 +5,7 @@ CREATE TABLE `queue` (
     `played` datetime default NULL,
     `queued` datetime default NULL
 );
+CREATE TABLE `status` (
+    `enabled`  int(1) default 1
+);
 

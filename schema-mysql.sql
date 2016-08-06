@@ -6,4 +6,7 @@ CREATE TABLE `queue` (
     `queued` datetime default NULL,
     PRIMARY KEY  (`id`)
 );
+CREATE TABLE `status` (
+    `enabled` int(1) default 1
+);
 
