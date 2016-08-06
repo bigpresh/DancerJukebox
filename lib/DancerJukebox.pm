@@ -126,6 +126,38 @@ sub _get_queued_songs {
     return [ database->quick_select('queue', { played => undef }) ];
 }
 
+sub get_enabled {
+    my $row = database->quick_select('status', {});
+    if ($row) {
+        return $row->{enabled};
+    } else {
+        database->quick_insert('status', { enabled => 1 });
+        return 1;
+    }
+}
+
+
+# Change enabled status
+any '/enabled' => sub {
+    my $current_state = get_enabled();
+    if (exists params->{new_state}) {
+        my $new_state;
+        if (params->{new_state} eq 'toggle') {
+            $new_state = get_enabled() ? 0 : 1;
+        } else {
+            $new_state = params->{new_state} ? 1 : 0;
+        }
+        if ($new_state != $current_state) {
+            debug "Setting enabled status to $new_state"
+                . " as we got " . params->{new_state};
+            database->quick_update('status', {}, { enabled => $new_state })
+                or debug("FAILED to update status");
+        }
+    }
+
+    return to_json { enabled => get_enabled() };
+};
+
 
 # Now, fork a process that will watch MPD, and, when a song is about to end, see
 # if we have anything in the queue to play, and, if so, play it:

@@ -7,10 +7,18 @@ use Dancer::Plugin::DebugDump;
 use Dancer::Plugin::MPD;
 use DateTime;
 
+use DancerJukebox;
+
 sub watch_queue {
     mainloop:
     while (1) {
         eval {
+            my $enabled = DancerJukebox->get_enabled();
+            if (!$enabled) {
+                warn "Jukebox is curretly disabled";
+                sleep 10;
+                next mainloop;;
+            }
             warn "Checking status.";
             my $status = mpd->status();
 
