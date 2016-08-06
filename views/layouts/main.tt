@@ -15,13 +15,26 @@ function update_current_song() {
     });
     window.setTimeout(update_current_song, 4000);
 }
+function update_status() {
+    $.getJSON('/enabled', function(status) {
+        $('#status').html(
+            status.enabled ? 'enabled' : 'disabled'
+        );
+    });
+    window.setTimeout(update_status, 4000);
+}
+
 $(document).ready(function(){
     update_current_song();
+    update_status();
     $('#skipnext').click(function(){
         $.getJSON('/control/skip');
         update_current_song();
         alert("OK, skipping");
         return false;
+    });
+    $('#status').click(function(){
+        $.getJSON('/enabled?new_state=toggle');
     });
 });
 </script>
@@ -38,6 +51,9 @@ $(document).ready(function(){
 <li><a href="/search">Search</a></li>
 <li><a href="/popular">Popular songs</a></li>
 </ul>
+
+<p>Jukebox is <span id="status">broken</span></p>
+
 <br clear="both" />
 
 <p>

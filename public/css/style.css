@@ -68,3 +68,10 @@ UL#nav A {
 #footer {
     border-top: 1px solid #008;
 }
+
+#status {
+    font-weight: bold;
+    padding: 8px;
+    color: blue;
+    cursor: pointer;
+}
