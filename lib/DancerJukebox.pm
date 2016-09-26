@@ -7,12 +7,14 @@ use DateTime;
 
 our $VERSION = '0.1';
 
-# We always want to be in repeat & random mode:
+# We always want to be in repeat & random mode if we are
 hook 'mpd_connected' => sub {
-    my $mpd = shift;
-    $mpd->repeat(1);
-    $mpd->random(1);
-    $mpd->play;
+    if (get_enabled()) {
+        my $mpd = shift;
+        $mpd->repeat(1);
+        $mpd->random(1);
+        $mpd->play;
+    }
 };
 
 get '/' => sub {
