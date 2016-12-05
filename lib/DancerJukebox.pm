@@ -162,16 +162,27 @@ any '/enabled' => sub {
 
 
 # Now, fork a process that will watch MPD, and, when a song is about to end, see
-# if we have anything in the queue to play, and, if so, play it:
-my $pid = fork();
-if (!defined $pid) {
-    die "Failed to fork queue watcher";
-} elsif ($pid == 0) {
-    # This code is executed by the child process
-    require DancerJukebox::PlayFromQueue;
-    DancerJukebox::PlayFromQueue::watch_queue();
+# if we have anything in the queue to play, and, if so, play it.  The child will
+# change its name to something predictable - and we should only fork if the
+# child doesn't already exist (in case we're being run by Starman or something
+# so we periodically re-exec):
+my $child_name = 'dancer-jukebox-queue-watcher';
+my $pgrep_out = `pgrep -f $child_name`;
+if ($? == 1) {
+    # pgrep indicated no processes matched
+    my $pid = fork();
+    if (!defined $pid) {
+        die "Failed to fork queue watcher";
+    } elsif ($pid == 0) {
+        # This code is executed by the child process
+        $0 = $child_name;
+        require DancerJukebox::PlayFromQueue;
+        DancerJukebox::PlayFromQueue::watch_queue();
+    } else {
+        debug("Forked PID $pid");
+    }
 } else {
-    debug("Forked PID $pid");
+    debug("A process named $child_name already exists, not forking");
 }
 
 
