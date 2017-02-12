@@ -1,7 +1,7 @@
 package DancerJukebox::PlayFromQueue;
 
 use strict;
-use Dancer ':syntax';
+use Dancer qw(:script);
 use Dancer::Plugin::Database;
 use Dancer::Plugin::DebugDump;
 use Dancer::Plugin::MPD;
@@ -12,7 +12,9 @@ use DancerJukebox;
 sub watch_queue {
     mainloop:
     while (1) {
+        warn "Loop start";
         eval {
+            warn "eval start, see if enabled";
             my $enabled = DancerJukebox->get_enabled();
             if (!$enabled) {
                 warn "Jukebox is curretly disabled";
@@ -69,6 +71,11 @@ sub watch_queue {
                 # preparing to move to the queued entry yet.
                 sleep 1;
             }
+
+            1;
+        } or do {
+            warn "eval failed?  $@";
+            sleep 10;
         };
     }
 }

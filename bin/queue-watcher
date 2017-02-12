@@ -6,6 +6,7 @@
 use strict;
 use lib::findbin qw(../lib);
 
+use Dancer qw(:script);;
 use DancerJukebox::PlayFromQueue;
 use Proc::PID::File;
 die "Already running!" if Proc::PID::File->running(
