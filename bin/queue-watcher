@@ -1,0 +1,19 @@
+#!/usr/bin/perl
+
+# Jukebox queue runner - watches MPD status, when a song is about to end, checks
+# if we have anything queued, and so, plays one from the queue
+
+use strict;
+use lib::findbin qw(../lib);
+
+use DancerJukebox::PlayFromQueue;
+use Proc::PID::File;
+die "Already running!" if Proc::PID::File->running(
+    dir => '/tmp',
+);
+
+say "OK, going for it!";
+
+DancerJukebox::PlayFromQueue::watch_queue();
+
+
