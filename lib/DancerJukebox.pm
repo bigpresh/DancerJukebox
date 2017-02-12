@@ -50,7 +50,15 @@ get '/' => sub {
     };
 };
 
-get '/control/skip' => sub { mpd->next; redirect '/'; };
+
+get '/control/skip' => sub {
+    if (my $song = next_in_queue()) {
+        play_queued_song($song);
+    } else {
+        mpd->next;
+    }
+    redirect '/';
+};
 
 get '/control/play/:id' => sub { mpd->play(params->{id}); redirect '/'; };
 
@@ -105,8 +113,6 @@ get '/admin' => sub {
         current => mpd->current,
     }, { layout => undef };
 };
-get '/admin/skip' => sub { mpd->next; redirect '/admin'; };
-
 
 post '/admin/dequeue' => sub {
     my @dequeue_ids = ref params->{id} ? @{ params->{id} } : params->{id};
