@@ -1,0 +1,8 @@
+#!/usr/bin/env perl
+
+use strict;
+
+use DancerJukebox::PlayFromQueue;
+
+DancerJukebox::PlayFromQueue->watch_queue;
+

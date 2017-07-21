@@ -1,0 +1,52 @@
+#!/bin/sh
+
+### BEGIN INIT INFO
+# Provides:          dancerjukebox
+# Required-Start:    $remote_fs
+# Required-Stop:     $remote_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: DancerJukebox queue runner
+### END INIT INFO
+
+
+. /lib/lsb/init-functions
+
+PIDFILE=/tmp/dancerjukebox.pid
+USER=davidp
+DIR=/home/davidp/dev/git/DancerJukebox
+
+do_start() {
+    log_daemon_msg "Starting DancerJukebox queue runner" "jukebox"
+    chdir $DIR
+    /sbin/start-stop-daemon --start --chuid $USER --chdir $DIR \
+        --background --make-pidfile --pidfile $PIDFILE \
+        --startas $DIR/scripts/jukebox-queuerunner 
+    log_end_msg $?
+}
+
+do_stop() {
+    log_daemon_msg "Stopping DancerJukebox queue runner" "jukebox"
+    /sbin/start-stop-daemon --stop  --user $USER \
+        --remove-pidfile --pidfile $PIDFILE
+    log_end_msg $?
+}
+
+
+case "$1" in
+    start)
+        do_start
+        ;;
+    stop)
+        do_stop
+        ;;
+    restart)
+        do_stop
+        do_start
+        ;;
+    *)
+        echo "Usage: $SCRIPTNAME {start|stop|restart}" >&2
+        exit 3
+        ;;
+esac
+
