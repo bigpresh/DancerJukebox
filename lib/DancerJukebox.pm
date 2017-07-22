@@ -170,6 +170,10 @@ any '/enabled' => sub {
 sub play_queued_song {
     my $song = shift;
 
+    if (!$song || !ref $song || !$song->{path}) {
+        carp "play_queued_song called without a song to add";
+    }
+
     # OK - do our magic!
     debug("OK, about to add $song->{path}");
     mpd->playlist->add($song->{path});
