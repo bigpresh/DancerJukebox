@@ -1,4 +1,5 @@
 package DancerJukebox;
+use Carp;
 use Dancer ':syntax';
 use Dancer::Plugin::Database;
 use Dancer::Plugin::DebugDump;
