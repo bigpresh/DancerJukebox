@@ -47,13 +47,14 @@ sub watch_queue {
             if ($time->seconds_left <= 1) {
                 debug("Song change immiment, looking for a queued entry");
                 my $next = DancerJukebox::next_in_queue();
-                if (!$next) {
+                if ($next) {
+                    DancerJukebox::play_queued_song($next);
+                } else {
                     # Song is about to change, and we have nothing queued
                     debug("Song change immiment, and nothing to play.");
                     sleep 10;
                     next mainloop;
                 }
-                DancerJukebox::play_queued_song(); 
                 sleep 10;
             } else {
                 # We're close to the end of a song, but not close enough to start
