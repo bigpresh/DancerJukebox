@@ -82,6 +82,17 @@
     </button>
 </section>
 
+<section class="panel">
+    <h2>Your queue limit</h2>
+    <p class="hint">
+    Opening this page exempts the browser from the per-person queue limit, so
+    you can add as many songs as you like from it. If a guest has wandered in
+    here and picked that up, this puts them back on the normal limit.
+    </p>
+    <p><a class="btn btn-block" href="/admin/normal-limits">Queue under the
+    normal limit again</a></p>
+</section>
+
 <p><a class="btn btn-block" href="/">Back to the jukebox</a></p>
 
 </main>

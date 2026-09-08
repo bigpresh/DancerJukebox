@@ -33,7 +33,7 @@ use constant POPULAR_CHART_SIZE => 50;
 # for one to play, you can add another. So somebody on their own can keep the
 # queue topped up all evening, but nobody can stack fifty and leave everyone
 # else's choices with no look-in. Set to 0 in config.yml for no limit.
-use constant DEFAULT_QUEUE_LIMIT => 3;
+use constant DEFAULT_QUEUE_LIMIT => 5;
 
 # Identifies a guest between requests. A cookie rather than an IP address:
 # phones change address when they roam between access points or renew a lease,
@@ -42,6 +42,12 @@ use constant DEFAULT_QUEUE_LIMIT => 3;
 # whole party. Someone who clears their cookies gets another go - this is a
 # politeness mechanism, not access control.
 use constant GUEST_COOKIE => 'jukebox_guest';
+
+# Visiting /admin sets this, and it exempts the browser from the per-person
+# limit - so you can queue freely from your own phone without the allowance
+# getting in your way. Forgeable, of course, but so is finding /admin in the
+# first place: same trust model, and there's a link there to drop it again.
+use constant ADMIN_COOKIE => 'jukebox_admin';
 
 # We always want to be in repeat & random mode if we are
 hook 'mpd_connected' => sub {
@@ -79,7 +85,8 @@ hook 'before_template_render' => sub {
 
     # So pages can show how much of your allowance is left, and warn you when
     # a no-JS queue attempt bounced off it.
-    my $limit = _queue_limit();
+    my $limit = _is_exempt() ? 0 : _queue_limit();
+    $tokens->{admin_exempt} = _is_exempt();
     $tokens->{queue_limit_per_person} = $limit;
     $tokens->{your_pending} = $limit ? _pending_count_for(_guest_id()) : 0;
     $tokens->{queue_full} = params->{queue_full} ? 1 : 0;
@@ -268,7 +275,7 @@ post '/enqueue' => sub {
     # Hold people to a few songs at a time, so one enthusiast can't bury
     # everyone else's choices.
     my $guest = _guest_id();
-    my $limit = _queue_limit();
+    my $limit = _is_exempt() ? 0 : _queue_limit();
     my $pending = $limit ? _pending_count_for($guest) : 0;
 
     if ($limit && $pending >= $limit) {
@@ -276,7 +283,10 @@ post '/enqueue' => sub {
             . " Hang on until one of them plays, then pick another.";
         if (_wants_json()) {
             return _json({
-                ok => 0, error => $error, limit => $limit, pending => $pending,
+                ok => 0, error => $error, limit => $limit,
+                # +0 because interpolating $pending into $error above set its
+                # string flag, and JSON would then emit "5" rather than 5.
+                pending => $pending + 0,
             });
         }
         return redirect _with_param(_safe_referer() || '/', queue_full => 1);
@@ -319,10 +329,25 @@ post '/enqueue' => sub {
 # people who could potentially access this; if I didn't, they wouldn't be in my
 # house drinking my beer, so it's all good.
 get '/admin' => sub {
+    # Being here is enough to mark this browser as yours, so the per-person
+    # queue limit stops applying to it.
+    set_cookie(ADMIN_COOKIE, 1, expires => '1 year', path => '/');
+    var admin_exempt => 1;
+
     template 'admin', {
         page   => 'admin',
         queued => _get_queued_songs(),
     }, { layout => undef };
+};
+
+# For when a guest has wandered in here and picked up the exemption, or you
+# just want to queue under the same rules as everyone else.
+get '/admin/normal-limits' => sub {
+    set_cookie(ADMIN_COOKIE, '', expires => '-1d', path => '/');
+    var admin_exempt => 0;
+    # Back to the guest side, not /admin - landing there would just hand the
+    # exemption straight back.
+    redirect '/';
 };
 
 post '/admin/dequeue' => sub {
@@ -341,8 +366,8 @@ get '/ajax/status' => sub {
         enabled => get_enabled() ? 1 : 0,
         state   => _mpd_state(),
         yours   => {
-            pending => _queue_limit() ? _pending_count_for(_guest_id()) : 0,
-            limit   => _queue_limit(),
+            pending => _is_exempt() ? 0 : _pending_count_for(_guest_id()),
+            limit   => _is_exempt() ? 0 : _queue_limit(),
         },
         current => _current_summary(),
         elapsed => 0,
@@ -607,6 +632,14 @@ sub _random_id {
     return unpack 'H*', $bytes;
 }
 
+sub _is_exempt {
+    return vars->{admin_exempt} if defined vars->{admin_exempt};
+    my $cookie = cookies->{ +ADMIN_COOKIE };
+    my $exempt = ($cookie && $cookie->value) ? 1 : 0;
+    var admin_exempt => $exempt;
+    return $exempt;
+}
+
 sub _queue_limit {
     my $limit = config->{max_queued_per_person};
     $limit = DEFAULT_QUEUE_LIMIT unless defined $limit;
@@ -625,7 +658,8 @@ sub _pending_count_for {
         'select count(*) from queue where played is null and queued_by = ?');
     $sth->execute($guest);
     my ($count) = $sth->fetchrow_array;
-    return $count || 0;
+    # Numeric for the same reason the limit is: this ends up in JSON.
+    return ($count || 0) + 0;
 }
 
 # Older installs won't have the columns we record the queuer in. Adding them

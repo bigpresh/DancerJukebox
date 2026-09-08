@@ -64,6 +64,10 @@ People are identified by a random id in a cookie rather than by IP address,
 so a phone that changes address when it roams or renews its lease is still
 recognised.  It's a politeness mechanism, not access control.
 
+Visiting C</admin> exempts that browser from the limit, so you can queue
+freely from your own phone; there's a link there to put it back on the normal
+limit again.
+
 =head1 USAGE
 
 Start the app:
