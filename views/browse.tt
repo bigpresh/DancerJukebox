@@ -1,0 +1,97 @@
+[% IF !root %]
+
+    <section class="panel">
+    <h2>Browse collections</h2>
+    <p class="hint">
+    Not sure what to search for? Have a dig through these.
+    </p>
+
+    [% IF collections.size %]
+        <ul class="albumgrid">
+        [% FOREACH collection IN collections %]
+            <li>
+            <a class="album" href="/browse?path=[% collection.path | uri %]">
+                <img class="album-art" src="/cover?path=[% collection.path | uri %]"
+                     alt="" loading="lazy" width="300" height="300">
+                <span class="album-name">[% collection.name | html %]</span>
+            </a>
+            </li>
+        [% END %]
+        </ul>
+    [% ELSE %]
+        <p class="empty">
+        No collections are set up yet. Add a <code>browse</code> section to
+        <code>config.yml</code> pointing at some directories in your library.
+        </p>
+    [% END %]
+    </section>
+
+[% ELSE %]
+
+    <nav class="crumbs" aria-label="Breadcrumb">
+        <a href="/browse">Collections</a>
+        [% FOREACH crumb IN crumbs %]
+            <span class="sep" aria-hidden="true">&rsaquo;</span>
+            [% IF loop.last %]
+                <span aria-current="page">[% crumb.name | html %]</span>
+            [% ELSE %]
+                <a href="/browse?path=[% crumb.path | uri %]">[% crumb.name | html %]</a>
+            [% END %]
+        [% END %]
+    </nav>
+
+    <section class="panel">
+
+    [% IF folders.size %]
+        <ul class="albumgrid">
+        [% FOREACH folder IN folders %]
+            <li>
+            <a class="album" href="/browse?path=[% folder.path | uri %]">
+                <img class="album-art" src="/cover?path=[% folder.path | uri %]"
+                     alt="" loading="lazy" width="300" height="300">
+                <span class="album-name">[% folder.name | html %]</span>
+            </a>
+            </li>
+        [% END %]
+        </ul>
+    [% END %]
+
+    [% IF songs.size %]
+        <form method="post" action="/enqueue">
+
+        [% IF folders.size %]<h2>Tracks</h2>[% END %]
+        <p class="hint">Tap a track to queue it.</p>
+
+        <ul class="songlist">
+        [% FOREACH song IN songs %]
+            <li>
+            <button class="song" type="submit" name="song"
+                    value="[% song.file | html %]"
+                    data-queue="[% song.file | html %]"
+                    data-label="[% song.display_title | html %]">
+                <span class="song-index">[% loop.count %]</span>
+                <span class="song-meta">
+                    <span class="song-title">[% song.display_title | html %]</span>
+                    <span class="song-sub">[% song.artist | html %]</span>
+                </span>
+                <span class="song-action" aria-hidden="true">+</span>
+            </button>
+            </li>
+        [% END %]
+        </ul>
+        </form>
+    [% END %]
+
+    [% IF !folders.size && !songs.size %]
+        <p class="empty">Nothing in here.</p>
+    [% END %]
+
+    </section>
+
+    [% IF parent %]
+        <p><a class="btn btn-block" href="/browse?path=[% parent | uri %]">Back</a></p>
+    [% ELSE %]
+        <p><a class="btn btn-block" href="/browse">All collections</a></p>
+    [% END %]
+
+[% END %]

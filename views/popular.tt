@@ -1,44 +1,36 @@
-
-<h1>Most popular songs</h1>
-
-<p>
-The following are the most commonly played songs on this DancerJukebox install.
+<section class="panel">
+<h2>Most popular <span class="count">[% popular.size %]</span></h2>
+<p class="hint">
+The most-queued songs on this jukebox. Tap one to queue it again.
 </p>
 
-<p>
-Tick the songs you want to queue, then hit the bloody great big queue button.
-</p>
-
-<form method="post" action="/enqueue">
-
-<div style="float:right;margin-right: 80px;">
-<input type="submit"  value="Queue selected" 
-    style="width: 150px; height: 125px;">
-</div>
-
-
-<ul>
-[% FOREACH song IN popular %]
-<li><label>
-<input type="checkbox" name="song" value="[% song.path %]" />
-[% IF song.title %]
-[% song.title %]
+[% IF popular.size %]
+    <form method="post" action="/enqueue">
+    <ul class="songlist">
+    [% FOREACH song IN popular %]
+        <li>
+        <button class="song" type="submit" name="song"
+                value="[% song.path | html %]"
+                data-queue="[% song.path | html %]"
+                data-label="[% song.display_title | html %]">
+            <span class="song-index">[% loop.count %]</span>
+            <span class="song-meta">
+                <span class="song-title">[% song.display_title | html %]</span>
+                <span class="song-sub">
+                    [%- IF song.artist %][% song.artist | html %] &middot; [% END -%]
+                    played [% song.times_queued %] time[% song.times_queued == 1 ? '' : 's' %]
+                </span>
+            </span>
+            <span class="song-action" aria-hidden="true">+</span>
+        </button>
+        </li>
+    [% END %]
+    </ul>
+    </form>
 [% ELSE %]
-[% song.path %]
+    <p class="empty">
+    Nothing&rsquo;s been queued yet, so there&rsquo;s no chart to show.
+    <a href="/search">Go and pick something</a> to get it started.
+    </p>
 [% END %]
-</label></li>
-[% END %]
-</ul>
-
-
-
-</form>
-
-
-<script>
-$(document).ready(function() {
-    // focus on the first text input field in the first field on the page
-    $("input[type='text']:first", document.forms[0]).focus();
-});
-</script>
-
+</section>

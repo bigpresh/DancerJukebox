@@ -1,53 +1,86 @@
-<h1>Search for songs</h1>
-<form method="get">
-Search for: <input type="text" name="q" />
-<input type="submit">
+<form class="searchbar" method="get" action="/search" role="search">
+    <label class="visually-hidden" for="q">Search for songs</label>
+    <input type="search" id="q" name="q" value="[% query | html %]"
+           placeholder="Search for a song, artist or album&hellip;"
+           autocomplete="off" autocorrect="off" autocapitalize="off"
+           spellcheck="false" data-autofocus>
+    <button class="btn btn-primary" type="submit">Search</button>
 </form>
 
+[% IF too_short %]
+    <section class="panel">
+    <h2>A bit more to go on?</h2>
+    <p class="muted">
+    Searches need at least [% min_length %] characters &ndash; one or two letters
+    match so much of the library that it takes an age and turns up everything.
+    </p>
+    <p class="hint">
+    Or have a dig through the <a href="/browse">collections</a> instead.
+    </p>
+    </section>
+[% ELSIF query %]
 
+    <section class="panel">
+    <h2>
+        Results
+        [% IF results.size %]<span class="count">[% results.size %]</span>[% END %]
+    </h2>
 
-[% IF results %]
+    [% IF results.size %]
+        [% IF truncated %]
+        <p class="hint">
+        [% truncated %] songs matched &ndash; showing the first [% results.size %].
+        Try a more specific search to narrow it down.
+        </p>
+        [% ELSE %]
+        <p class="hint">Tap a song to add it to the queue.</p>
+        [% END %]
 
-<h1>Search results</h1>
+        <!-- Each row is its own submit button, so one tap queues that one
+             song. Works without JavaScript too (it just reloads the page);
+             with JS it's an AJAX call and you stay put in the results. -->
+        <form method="post" action="/enqueue">
+        <ul class="songlist">
+        [% FOREACH song IN results %]
+            <li>
+            <button class="song" type="submit" name="song"
+                    value="[% song.file | html %]"
+                    data-queue="[% song.file | html %]"
+                    data-label="[% song.display_title | html %]">
+                <span class="song-meta">
+                    <span class="song-title">[% song.display_title | html %]</span>
+                    <span class="song-sub">
+                        [%- IF song.artist %][% song.artist | html %][% END %]
+                        [%- IF song.album %] &middot; [% song.album | html %][% END -%]
+                    </span>
+                </span>
+                <span class="song-action" aria-hidden="true">+</span>
+            </button>
+            </li>
+        [% END %]
+        </ul>
+        </form>
+    [% ELSE %]
+        <p class="empty">
+        Nothing matched &ldquo;[% query | html %]&rdquo;. Try an artist name, or
+        just part of a title.
+        </p>
+    [% END %]
+    </section>
 
-<p>
-Tick the songs you want to queue, then hit the bloody great big queue button.
-</p>
-
-<form method="post" action="/enqueue">
-
-<div style="float:right;margin-right: 80px;">
-<input type="submit"  value="Queue selected" 
-    style="width: 150px; height: 125px;">
-</div>
-
-
-<ul>
-[% FOREACH song IN results %]
-<li><label>
-<input type="checkbox" name="song" value="[% song.file %]" />
-[% IF song.title %]
-[% song.title %] by [% song.artist %] from [% song.album %]
 [% ELSE %]
-[% song.file %]
+
+    <section class="panel">
+    <h2>Find something to play</h2>
+    <p class="muted">
+    Search by song title, artist, album or filename &ndash; then tap a result to
+    add it to the queue.
+    </p>
+    <p class="hint">
+    Not sure what to pick? Browse the
+    <a href="/browse">albums and collections</a>, or see the
+    <a href="/popular">most popular songs</a>.
+    </p>
+    </section>
+
 [% END %]
-</label></li>
-[% END %]
-</ul>
-
-<p>Found [% results.size %] results</p>
-
-
-</form>
-
-[% END %]
-
-<script>
-$(document).ready(function() {
-    // focus on the first text input field in the first field on the page
-    // TODO: this is really irritating on tablets; disabled until I have a
-    // tablet-centric view
-    // $("input[type='text']:first", document.forms[0]).focus();
-});
-</script>
-

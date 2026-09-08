@@ -3,7 +3,6 @@ package DancerJukebox::PlayFromQueue;
 use strict;
 use Dancer qw(:script);
 use Dancer::Plugin::Database;
-use Dancer::Plugin::DebugDump;
 use Dancer::Plugin::MPD;
 use DateTime;
 
