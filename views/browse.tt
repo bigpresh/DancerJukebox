@@ -80,17 +80,6 @@
         [% END %]
         </ul>
         </form>
-
-        <!-- Queues the lot in one go. Separate form so the per-track buttons
-             above submit only themselves. -->
-        <form method="post" action="/enqueue">
-        [% FOREACH song IN songs %]
-            <input type="hidden" name="song" value="[% song.file | html %]">
-        [% END %]
-        <button class="btn btn-primary btn-block btn-big" type="submit">
-            Queue all [% songs.size %] tracks
-        </button>
-        </form>
     [% END %]
 
     [% IF !folders.size && !songs.size %]
