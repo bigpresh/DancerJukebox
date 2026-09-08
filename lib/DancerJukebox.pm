@@ -173,7 +173,9 @@ sub play_queued_song {
 
     if (!$song || !ref $song || !$song->{path}) {
         carp "play_queued_song called without a song to add";
+        return;
     }
+
 
     # OK - do our magic!
     debug("OK, about to add $song->{path}");
