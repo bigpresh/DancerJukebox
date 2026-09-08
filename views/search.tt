@@ -7,7 +7,18 @@
     <button class="btn btn-primary" type="submit">Search</button>
 </form>
 
-[% IF query %]
+[% IF too_short %]
+    <section class="panel">
+    <h2>A bit more to go on?</h2>
+    <p class="muted">
+    Searches need at least [% min_length %] characters &ndash; one or two letters
+    match so much of the library that it takes an age and turns up everything.
+    </p>
+    <p class="hint">
+    Or have a dig through the <a href="/browse">collections</a> instead.
+    </p>
+    </section>
+[% ELSIF query %]
 
     <section class="panel">
     <h2>
@@ -66,7 +77,8 @@
     add it to the queue.
     </p>
     <p class="hint">
-    Not sure what to pick? Have a look at the
+    Not sure what to pick? Browse the
+    <a href="/browse">albums and collections</a>, or see the
     <a href="/popular">most popular songs</a>.
     </p>
     </section>

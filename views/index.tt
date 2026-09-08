@@ -54,6 +54,8 @@
         </form>
 
         <a class="btn btn-block" href="/popular">More popular songs</a>
+        <a class="btn btn-block" href="/browse"
+           style="margin-top: 8px;">Browse albums</a>
     [% ELSE %]
         <p class="empty">
         Nothing&rsquo;s been queued yet, so there&rsquo;s no chart yet.

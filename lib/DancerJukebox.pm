@@ -4,12 +4,21 @@ use Dancer ':syntax';
 use Dancer::Plugin::Database;
 use Dancer::Plugin::MPD;
 use DateTime;
+use Digest::MD5 qw(md5_hex);
+use File::Path qw(make_path);
+use File::Spec;
 
 our $VERSION = '0.1';
 
 # Cap on how many search results we'll render at once. A broad search against a
 # few thousand songs otherwise builds a page big enough to make a phone crawl.
 use constant MAX_SEARCH_RESULTS => 200;
+
+# Shorter than this and a search matches so much of a decent-sized library
+# that MPD hits its output buffer limit and drops the connection. ("a" against
+# ~49k songs does exactly that.)
+use constant MIN_SEARCH_LENGTH => 3;
+
 
 # How much the front page shows before sending you off to a full listing.
 # Both can be overridden via the "home" section of config.yml.
@@ -21,12 +30,18 @@ use constant POPULAR_CHART_SIZE => 50;
 
 # We always want to be in repeat & random mode if we are
 hook 'mpd_connected' => sub {
-    if (get_enabled()) {
-        my $mpd = shift;
-        $mpd->repeat(1);
-        $mpd->random(1);
-        $mpd->play;
-    }
+    my $mpd = shift;
+    return unless get_enabled();
+
+    $mpd->repeat(1);
+    $mpd->random(1);
+
+    # Only start playback if it isn't already going. This hook fires on every
+    # *re*connect, not just the first one - and an unusually broad search can
+    # make MPD drop the connection, so an unconditional play() here meant a
+    # guest's search could jump the track everyone was listening to.
+    my $state = eval { $mpd->status->state } || '';
+    $mpd->play if $state ne 'play';
 };
 
 # Every page shows the now-playing bar and the on/off switch, so rather than
@@ -82,11 +97,20 @@ get '/search' => sub {
     my $query = params->{'q'};
     my @results;
     my $truncated = 0;
+    my $too_short = 0;
 
-    if (defined $query && length $query) {
+    if (defined $query && length $query && length $query < MIN_SEARCH_LENGTH) {
+        $too_short = 1;
+    }
+    elsif (defined $query && length $query) {
         # Search titles, artists, albums and filenames. People at a party type
         # "queen" or "dancing" - matching only the filename (as this used to)
         # misses anything whose tags are better than its file naming.
+        #
+        # Ordered cheapest-and-most-relevant first, and we stop as soon as
+        # we've got a page's worth: filename in particular matches enormously
+        # on a big library (every path contains "the"), and a big enough
+        # result set makes MPD hit its output buffer and drop the connection.
         my %seen;
         for my $method (qw(
             songs_with_title_partial
@@ -104,6 +128,7 @@ get '/search' => sub {
                 next if $seen{ $song->file }++;
                 push @results, _song_summary($song);
             }
+            last if @results >= MAX_SEARCH_RESULTS;
         }
 
         @results = sort {
@@ -119,10 +144,61 @@ get '/search' => sub {
     }
 
     template 'search' => {
-        page      => 'search',
-        query     => $query,
-        results   => \@results,
-        truncated => $truncated,
+        page       => 'search',
+        query      => $query,
+        results    => \@results,
+        truncated  => $truncated,
+        too_short  => $too_short,
+        min_length => MIN_SEARCH_LENGTH,
+    };
+};
+
+
+# Browsing curated collections, for "I don't know what to search for, but I
+# fancy some 80s music" - which in practice means wanting the hits, not a
+# random sample of everything released that decade. The collections are just
+# directories in the library (the NOW series, Mastermix, and so on), so discs
+# and per-year sub-folders are walked automatically and adding a new album
+# needs no configuration.
+get '/browse' => sub {
+    my $collections = _browse_collections();
+    my $path = params->{path};
+
+    # No path (or a path we don't recognise): offer the top-level collections.
+    my $root = $path ? _browse_root_for($path) : undef;
+    if (!$root) {
+        return template 'browse' => {
+            page        => 'browse',
+            collections => $collections,
+        };
+    }
+
+    my (@folders, @songs);
+    my @items = eval { mpd->collection->items_in_dir($path) };
+    if ($@) {
+        debug "Couldn't list '$path': $@";
+    }
+
+    for my $item (@items) {
+        if ($item->isa('Audio::MPD::Common::Item::Directory')) {
+            push @folders, {
+                path => $item->directory,
+                name => _basename($item->directory),
+            };
+        } elsif ($item->isa('Audio::MPD::Common::Item::Song')) {
+            push @songs, _song_summary($item);
+        }
+    }
+
+    template 'browse' => {
+        page        => 'browse',
+        collections => $collections,
+        root        => $root,
+        path        => $path,
+        crumbs      => _browse_crumbs($root, $path),
+        parent      => _browse_parent($root, $path),
+        folders     => \@folders,
+        songs       => \@songs,
     };
 };
 
@@ -426,6 +502,223 @@ sub _decorate_row {
         my $song = eval { mpd->collection->song($path) };
         return $song_cache{$path} = _song_summary($song, $path);
     }
+}
+
+### Cover art ###############################################################
+
+# Cover art filenames worth showing, best first. Anything matching "back" is
+# skipped explicitly - plenty of these albums ship a Back.jpg too, and a grid
+# of back covers is no use to anyone.
+use constant COVER_NAMES => [qw(
+    cover folder front albumart album art
+)];
+use constant COVER_EXTENSIONS => [qw(jpg jpeg png gif)];
+
+# Shown whenever an album has no usable artwork of its own.
+use constant NO_COVER_IMAGE => '/images/no-cover.svg';
+
+# Serve a thumbnail of an album's cover.
+#
+# Originals here average ~400KB and run to several MB, so a grid of eighty of
+# them would be a punishing download on a phone. We shrink each one once and
+# cache it on disk; after that it's a static file.
+get '/cover' => sub {
+    my $path = params->{path};
+
+    # Only inside a configured collection - same rule as browsing. Anything
+    # else falls through to the placeholder rather than erroring, so the grid
+    # never shows a broken image.
+    my $root = $path ? _browse_root_for($path) : undef;
+    my $source = $root ? _find_cover($path) : undef;
+
+    return send_file(NO_COVER_IMAGE) if !$source;
+
+    my $thumb = _cover_thumbnail($source);
+    return send_file($thumb || $source, system_path => 1);
+};
+
+
+# Locate the best cover image inside a library directory. Looks in the
+# directory itself, then one level down, so an album whose art lives in
+# Disc1/ still shows something.
+{
+    my %cover_cache;
+
+    sub _find_cover {
+        my $path = shift;
+        return $cover_cache{$path} if exists $cover_cache{$path};
+
+        my $dir = _library_path($path);
+        return $cover_cache{$path} = undef unless defined $dir && -d $dir;
+
+        my $found = _best_image_in($dir);
+
+        if (!$found) {
+            # Try one level down (discs, etc), in directory order so it's
+            # stable between requests.
+            opendir my $dh, $dir or return $cover_cache{$path} = undef;
+            my @subdirs = sort grep { !/^\./ && -d File::Spec->catdir($dir, $_) }
+                readdir $dh;
+            closedir $dh;
+            for my $sub (@subdirs) {
+                $found = _best_image_in(File::Spec->catdir($dir, $sub));
+                last if $found;
+            }
+        }
+
+        return $cover_cache{$path} = $found;
+    }
+}
+
+sub _best_image_in {
+    my $dir = shift;
+    opendir my $dh, $dir or return undef;
+    my @files = grep { !/^\./ } readdir $dh;
+    closedir $dh;
+
+    my %by_name;
+    for my $file (@files) {
+        my ($stem, $ext) = $file =~ /^(.+)\.([^.]+)$/ or next;
+        next unless grep { lc $ext eq $_ } @{ +COVER_EXTENSIONS };
+        next if $stem =~ /back/i;      # skip back covers
+        push @{ $by_name{ lc $stem } }, $file;
+    }
+    return undef unless %by_name;
+
+    # Preferred names first...
+    for my $want (@{ +COVER_NAMES }) {
+        for my $stem (sort keys %by_name) {
+            # matches "cover", "cover (1)", "cover_1" and so on
+            next unless $stem eq $want || $stem =~ /^\Q$want\E[\s_(-]/;
+            my ($file) = sort @{ $by_name{$stem} };
+            return File::Spec->catfile($dir, $file);
+        }
+    }
+
+    # ...otherwise any image that isn't a back cover.
+    my ($first_stem) = sort keys %by_name;
+    my ($file) = sort @{ $by_name{$first_stem} };
+    return File::Spec->catfile($dir, $file);
+}
+
+# Shrink a cover to something sensible for a phone, caching the result.
+# Returns undef if we can't (no ImageMagick, unwritable cache) so the caller
+# can fall back to serving the original.
+sub _cover_thumbnail {
+    my $source = shift;
+    return undef unless defined $source && -f $source;
+
+    my $size = config->{cover_size} || 300;
+    my $cache_dir = config->{cover_cache}
+        || File::Spec->catdir(setting('appdir'), 'covers-cache');
+
+    my @stat = stat $source;
+    my $key = md5_hex(join '|', $source, $stat[7] || 0, $stat[9] || 0, $size);
+    my $thumb = File::Spec->catfile($cache_dir, "$key.jpg");
+
+    return $thumb if -f $thumb && -s $thumb;
+
+    if (!-d $cache_dir) {
+        eval { make_path($cache_dir) } or do {
+            debug "Couldn't create cover cache dir $cache_dir: $@";
+            return undef;
+        };
+    }
+
+    # List form, so nothing here goes anywhere near a shell.
+    my $tmp = "$thumb.$$.tmp";
+    my @cmd = (
+        'convert', "$source\[0]", '-thumbnail', "${size}x${size}>",
+        '-background', 'none', '-strip', '-quality', '82', $tmp,
+    );
+    my $rc = system @cmd;
+
+    if ($rc != 0 || !-s $tmp) {
+        unlink $tmp;
+        debug "convert failed for $source (rc $rc); serving original";
+        return undef;
+    }
+
+    rename $tmp, $thumb or do { unlink $tmp; return undef };
+    return $thumb;
+}
+
+# Turn a library-relative path into a path on disk, refusing anything that
+# tries to climb out of the music directory.
+sub _library_path {
+    my $path = shift;
+    my $music_dir = config->{music_dir} or return undef;
+    return undef unless defined $path && length $path;
+    return undef if $path =~ m{(?:^|/)\.\.(?:/|$)};
+    return undef if $path =~ m{^/};
+    return File::Spec->catdir($music_dir, $path);
+}
+
+
+### Browsing curated collections ############################################
+
+# The collections configured in config.yml's "browse" section. Each is just a
+# name and a directory within the MPD library.
+sub _browse_collections {
+    my $configured = config->{browse} || [];
+    return [ grep { $_->{path} } @$configured ];
+}
+
+# Which configured collection, if any, does this path live inside?  Anything
+# that isn't under one of them is refused - so a hand-typed path can't be used
+# to wander the rest of the library (or anywhere else).
+sub _browse_root_for {
+    my $path = shift;
+    return undef unless defined $path && length $path;
+
+    # No traversal, no absolute paths, no trailing slashes to confuse matching
+    return undef if $path =~ m{(?:^|/)\.\.(?:/|$)};
+    return undef if $path =~ m{^/};
+
+    for my $collection (@{ _browse_collections() }) {
+        my $root = $collection->{path};
+        $root =~ s{/+$}{};
+        return $collection if $path eq $root || index($path, "$root/") == 0;
+    }
+    return undef;
+}
+
+# Breadcrumbs from the collection root down to the current directory.
+sub _browse_crumbs {
+    my ($root, $path) = @_;
+    my $base = $root->{path};
+    $base =~ s{/+$}{};
+
+    my @crumbs = ({ name => $root->{name}, path => $base });
+    return \@crumbs if $path eq $base;
+
+    my $rest = substr $path, length($base) + 1;
+    my $so_far = $base;
+    for my $part (split m{/}, $rest) {
+        $so_far .= "/$part";
+        push @crumbs, { name => $part, path => $so_far };
+    }
+    return \@crumbs;
+}
+
+# Where "up one level" goes: the parent directory, or back to the list of
+# collections once we're at the top of one.
+sub _browse_parent {
+    my ($root, $path) = @_;
+    my $base = $root->{path};
+    $base =~ s{/+$}{};
+    return undef if $path eq $base;
+
+    my $parent = $path;
+    $parent =~ s{/[^/]+$}{};
+    return length $parent ? $parent : undef;
+}
+
+sub _basename {
+    my $path = shift;
+    return '' unless defined $path;
+    my ($name) = $path =~ m{([^/]+)/*$};
+    return defined $name ? $name : $path;
 }
 
 # Last resort when a song has no title tag: make its filename presentable

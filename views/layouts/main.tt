@@ -37,16 +37,24 @@
 
     <span class="now-time muted hint" aria-hidden="true"></span>
 
-    <a class="btn btn-skip" href="/control/skip" data-skip
-       title="Skip to the next song" aria-label="Skip to the next song">Skip</a>
+    <!-- No skip button here on purpose: guests queue songs, playback is
+         controlled from /admin. -->
 
     <div class="progress" aria-hidden="true"><div class="bar"></div></div>
 </div>
+
+<!-- Read-only, and only shown when it's off - otherwise people wonder why
+     their song never comes on. Turning it back on is an /admin job. -->
+[% IF !enabled %]
+<p class="jukebox-off">Jukebox is currently paused &ndash; songs you queue will
+play once it&rsquo;s switched back on.</p>
+[% END %]
 
 <nav>
 <ul class="nav">
     <li><a href="/"[% IF page == 'home' %] aria-current="page"[% END %]>Queue</a></li>
     <li><a href="/search"[% IF page == 'search' %] aria-current="page"[% END %]>Search</a></li>
+    <li><a href="/browse"[% IF page == 'browse' %] aria-current="page"[% END %]>Browse</a></li>
     <li><a href="/popular"[% IF page == 'popular' %] aria-current="page"[% END %]>Popular</a></li>
 </ul>
 </nav>
@@ -58,13 +66,6 @@
 </main>
 
 <footer class="footer">
-    <p>
-    <button type="button" class="power[% IF enabled %] is-on[% ELSE %] is-off[% END %]"
-            aria-pressed="[% enabled ? 'true' : 'false' %]">
-        <span class="dot" aria-hidden="true"></span>
-        <span class="power-label">[% enabled ? 'Jukebox on' : 'Jukebox off' %]</span>
-    </button>
-    </p>
     <p>
     <a href="https://github.com/bigpresh/DancerJukebox">DancerJukebox</a>
     by <a href="https://blog.preshweb.co.uk/">David Precious</a>,

@@ -340,6 +340,18 @@ p { margin: 0 0 1em; }
 /* "... and 6 more waiting" under the shortened queue list */
 .queue-more { margin: 10px 0 14px; text-align: center; }
 
+/* Shown to guests only when the jukebox is switched off. Purely informational
+ * - the switch itself lives on /admin. */
+.jukebox-off {
+    margin: 0;
+    padding: 12px var(--pad);
+    background: rgba(255, 92, 114, 0.14);
+    border-bottom: 1px solid rgba(255, 92, 114, 0.4);
+    color: var(--bad);
+    font-weight: 600;
+    text-align: center;
+}
+
 
 /* ----------------------------------------------------------- song lists  */
 
@@ -530,3 +542,73 @@ button.song:hover .song-action { background: var(--raised-hover); }
         transition-duration: 0.001ms !important;
     }
 }
+
+
+/* ----------------------------------------------------------- album grid  */
+
+/* Covers make browsing feel like flicking through a record box, which is the
+ * whole point - names alone are a filing cabinet. Two across on a phone,
+ * more as the screen allows. */
+.albumgrid {
+    list-style: none;
+    margin: 0 0 4px;
+    padding: 0;
+    display: grid;
+    gap: var(--gap);
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+}
+
+.album {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px;
+    border-radius: var(--radius-sm);
+    color: inherit;
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: background 0.12s ease;
+}
+.album:hover { background: var(--raised); text-decoration: none; }
+.album:active { background: var(--raised-hover); }
+.album:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
+
+.album-art {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    display: block;
+    border-radius: 8px;
+    background: var(--panel-solid);
+    border: 1px solid var(--line);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+}
+
+.album-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.3;
+    /* Two lines then ellipsis, so long NOW titles don't shove the grid about */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+
+/* --------------------------------------------------------- breadcrumbs  */
+
+.crumbs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 2px 12px;
+    font-size: 0.9rem;
+    color: var(--text-dim);
+}
+.crumbs a { color: var(--text-dim); }
+.crumbs a:hover { color: var(--accent); }
+.crumbs .sep { color: var(--text-faint); }
+.crumbs [aria-current="page"] { color: var(--text); font-weight: 600; }

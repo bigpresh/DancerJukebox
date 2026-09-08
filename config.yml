@@ -5,10 +5,27 @@ template: template_toolkit
 appname: "DancerJukebox"
 port: 4000
 random: 1
+# Where the MPD library lives on disk. Only needed for cover art, which is
+# read from the album directories (cover.jpg, Front.jpg and friends).
+music_dir: "/shared/music"
+# Cover thumbnails are generated once with ImageMagick and cached here.
+cover_cache: "covers-cache"
+cover_size: 300
 # How much the front page shows before pointing you at a fuller listing
 home:
     queued_songs: 5
     popular_songs: 10
+# Curated collections guests can browse when they don't know what to search
+# for. Each is just a directory in your MPD library - sub-folders (discs,
+# per-year folders) are walked automatically, so adding a new album to one of
+# these needs no config change. Paths outside these roots can't be browsed.
+browse:
+    - name: "NOW That's What I Call Music"
+      path: "Compilation Albums/NOW Series"
+    - name: "Mastermix"
+      path: "DJ/Mastermix"
+    - name: "Compilation albums"
+      path: "Compilation Albums"
 playlist:
     tracks_before_current: 4
     tracks_after_current: 6
