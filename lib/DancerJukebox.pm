@@ -130,7 +130,9 @@ get '/control/play/:id' => sub { mpd->play(params->{id}); redirect '/'; };
 
 # Searching support:
 get '/search' => sub {
-    my $query = params->{'q'};
+    # Stripped, not rejected: a stray control character pasted into the box
+    # shouldn't fail the search, it just mustn't reach MPD.
+    my $query = _mpd_arg_clean(params->{'q'});
     my @results;
     my $truncated = 0;
     my $too_short = 0;
@@ -264,7 +266,7 @@ QUERY
 
 # Adding songs to the queue:
 post '/enqueue' => sub {
-    my @songs_to_queue = grep { defined $_ && length $_ }
+    my @songs_to_queue = grep { defined $_ && length $_ && _mpd_arg_ok($_) }
         ref params->{song} ? @{ params->{song} } : params->{song};
 
     if (!@songs_to_queue) {
@@ -453,6 +455,12 @@ sub play_queued_song {
         return;
     }
 
+    if (!_mpd_arg_ok($song->{path})) {
+        carp "Refusing to play queued song with an unsafe path";
+        mark_played($song->{id});
+        return;
+    }
+
 
     # OK - do our magic!
     debug("OK, about to add $song->{path}");
@@ -594,10 +602,38 @@ sub _decorate_row {
         # Don't let a long-running process grow this without bound.
         %song_cache = () if keys %song_cache > 5_000;
 
-        my $song = eval { mpd->collection->song($path) };
+        # A row stored before this check existed could still hold one
+        my $song = _mpd_arg_ok($path)
+            ? eval { mpd->collection->song($path) }
+            : undef;
         return $song_cache{$path} = _song_summary($song, $path);
     }
 }
+
+### Talking to MPD safely ###################################################
+
+# MPD's protocol is line-based, and Audio::MPD escapes only double quotes when
+# it builds a command - not newlines. So a value containing one ends the
+# command and starts another: searching for "queen\nkill\n" shuts the server
+# down, and a crafted path stored in the queue re-fires every time the queue
+# is rendered. Nothing derived from user input may reach MPD without passing
+# through here.
+sub _mpd_arg_ok {
+    my $value = shift;
+    return 0 unless defined $value;
+    return 0 if $value =~ /[\x00-\x1f\x7f]/;
+    return 1;
+}
+
+# For free-text where silently dropping the odd stray character beats refusing
+# the whole request.
+sub _mpd_arg_clean {
+    my $value = shift;
+    return $value unless defined $value;
+    $value =~ s/[\x00-\x1f\x7f]//g;
+    return $value;
+}
+
 
 ### Telling guests apart ####################################################
 
@@ -859,9 +895,11 @@ sub _browse_root_for {
     my $path = shift;
     return undef unless defined $path && length $path;
 
-    # No traversal, no absolute paths, no trailing slashes to confuse matching
+    # No traversal, no absolute paths, and nothing that could break out of the
+    # MPD command we're about to put this in
     return undef if $path =~ m{(?:^|/)\.\.(?:/|$)};
     return undef if $path =~ m{^/};
+    return undef unless _mpd_arg_ok($path);
 
     for my $collection (@{ _browse_collections() }) {
         my $root = $collection->{path};
