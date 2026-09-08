@@ -22,7 +22,7 @@ Tick the songs you want to queue, then hit the bloody great big queue button.
 </div>
 
 
-<ul>
+<ul class="songlist">
 [% FOREACH song IN results %]
 <li><label>
 <input type="checkbox" name="song" value="[% song.file %]" />

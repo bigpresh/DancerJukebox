@@ -1,5 +1,6 @@
 BODY {
-    background: url(/images/turntable.jpg) no-repeat fixed;
+    background-image: url(/images/turntable.jpg);
+    background-size: cover;
     font-family:  Verdana, Arial;
 }
 P {
@@ -75,3 +76,12 @@ UL#nav A {
     color: blue;
     cursor: pointer;
 }
+
+
+.songlist LI {
+    display: block;
+    border: 1px solid #666;
+    padding: 5px;
+    font-size: 14px;
+}
+
