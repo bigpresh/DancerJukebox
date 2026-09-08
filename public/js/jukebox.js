@@ -137,6 +137,20 @@
 
         paint_power(status.enabled);
         paint_queue(status.queue);
+        paint_allowance(status.yours);
+    }
+
+    /* "You've 2 of 3 picks left" - refreshed as your songs come round, so the
+     * number goes back up without a reload. */
+    function paint_allowance(yours) {
+        var el = $(".allowance");
+        if (!el || !yours || !yours.limit) { return; }
+
+        var left = yours.limit - yours.pending;
+        el.textContent = (left > 0)
+            ? "You've " + left + " of " + yours.limit + " picks left."
+            : "That's your " + yours.limit +
+              " queued - pick another once one has played.";
     }
 
     function paint_power(enabled) {
@@ -279,6 +293,11 @@
                     if (action) { action.textContent = "✓"; }
                     toast("Queued: " + (row.getAttribute("data-label") || "song"),
                           "good");
+                    refresh_status();
+                } else if (res && res.error) {
+                    // Usually "you've already got three waiting" - the server
+                    // words it, so we just show what it said.
+                    toast(res.error, "bad");
                     refresh_status();
                 } else {
                     toast("Couldn't queue that one", "bad");

@@ -28,6 +28,21 @@ use constant DEFAULT_HOME_POPULAR => 10;
 # How many songs the full /popular chart lists.
 use constant POPULAR_CHART_SIZE => 50;
 
+# How many songs one person may have *waiting* at any one time. Counting
+# pending rather than lifetime is the whole point: if you queue three and wait
+# for one to play, you can add another. So somebody on their own can keep the
+# queue topped up all evening, but nobody can stack fifty and leave everyone
+# else's choices with no look-in. Set to 0 in config.yml for no limit.
+use constant DEFAULT_QUEUE_LIMIT => 3;
+
+# Identifies a guest between requests. A cookie rather than an IP address:
+# phones change address when they roam between access points or renew a lease,
+# and if a reverse proxy is ever put in front of the app every guest would
+# share one address, so the first person to hit the limit would lock out the
+# whole party. Someone who clears their cookies gets another go - this is a
+# politeness mechanism, not access control.
+use constant GUEST_COOKIE => 'jukebox_guest';
+
 # We always want to be in repeat & random mode if we are
 hook 'mpd_connected' => sub {
     my $mpd = shift;
@@ -44,6 +59,13 @@ hook 'mpd_connected' => sub {
     $mpd->play if $state ne 'play';
 };
 
+# Make sure everyone has an identity and the queue table has somewhere to
+# record it, before anyone tries to queue anything.
+hook 'before' => sub {
+    _ensure_schema();
+    _guest_id();
+};
+
 # Every page shows the now-playing bar and the on/off switch, so rather than
 # each route remembering to pass them, fill them in for all templates.
 # Everything in here is best-effort: if MPD has gone away we still want to
@@ -54,6 +76,13 @@ hook 'before_template_render' => sub {
     $tokens->{enabled} = get_enabled() ? 1 : 0;
     $tokens->{state}   = _mpd_state();
     $tokens->{page} ||= '';
+
+    # So pages can show how much of your allowance is left, and warn you when
+    # a no-JS queue attempt bounced off it.
+    my $limit = _queue_limit();
+    $tokens->{queue_limit_per_person} = $limit;
+    $tokens->{your_pending} = $limit ? _pending_count_for(_guest_id()) : 0;
+    $tokens->{queue_full} = params->{queue_full} ? 1 : 0;
 };
 
 # The front page guests see: what's coming up, an obvious way to queue
@@ -236,15 +265,46 @@ post '/enqueue' => sub {
         return redirect '/search';
     }
 
+    # Hold people to a few songs at a time, so one enthusiast can't bury
+    # everyone else's choices.
+    my $guest = _guest_id();
+    my $limit = _queue_limit();
+    my $pending = $limit ? _pending_count_for($guest) : 0;
+
+    if ($limit && $pending >= $limit) {
+        my $error = "You've already got $pending songs waiting."
+            . " Hang on until one of them plays, then pick another.";
+        if (_wants_json()) {
+            return _json({
+                ok => 0, error => $error, limit => $limit, pending => $pending,
+            });
+        }
+        return redirect _with_param(_safe_referer() || '/', queue_full => 1);
+    }
+
+    # Never let one request take someone past their allowance
+    if ($limit) {
+        my $room = $limit - $pending;
+        splice @songs_to_queue, $room if @songs_to_queue > $room;
+    }
+
     debug "Songs to queue: ", \@songs_to_queue;
     my $datetime = DateTime->now;
     my $queued_timestamp = join ' ', $datetime->ymd, $datetime->hms;
-    database->quick_insert('queue',
-        { path => $_, queued => $queued_timestamp }
-    ) for @songs_to_queue;
+    database->quick_insert('queue', {
+        path      => $_,
+        queued    => $queued_timestamp,
+        queued_by => $guest,
+        ip        => request->address,
+    }) for @songs_to_queue;
 
     if (_wants_json()) {
-        return _json({ ok => 1, queued => scalar @songs_to_queue });
+        return _json({
+            ok      => 1,
+            queued  => scalar @songs_to_queue,
+            limit   => $limit,
+            pending => $pending + @songs_to_queue,
+        });
     }
 
     # Without JS, send them back where they came from so they can carry on
@@ -280,6 +340,10 @@ get '/ajax/status' => sub {
     my %status = (
         enabled => get_enabled() ? 1 : 0,
         state   => _mpd_state(),
+        yours   => {
+            pending => _queue_limit() ? _pending_count_for(_guest_id()) : 0,
+            limit   => _queue_limit(),
+        },
         current => _current_summary(),
         elapsed => 0,
         total   => 0,
@@ -441,6 +505,12 @@ sub _safe_referer {
     return $path;
 }
 
+sub _with_param {
+    my ($url, $key, $value) = @_;
+    my $join = $url =~ /\?/ ? '&' : '?';
+    return "$url$join$key=$value";
+}
+
 sub _mpd_state {
     my $state = eval { mpd->status->state };
     return $state || 'stop';
@@ -503,6 +573,90 @@ sub _decorate_row {
         return $song_cache{$path} = _song_summary($song, $path);
     }
 }
+
+### Telling guests apart ####################################################
+
+# A stable per-browser id. Set once and remembered for the request, so calling
+# this more than once in a request gives the same answer even on the first
+# visit (when the cookie only exists on the way back out).
+sub _guest_id {
+    return vars->{guest_id} if vars->{guest_id};
+
+    my $cookie = cookies->{ +GUEST_COOKIE };
+    my $id = $cookie ? scalar $cookie->value : undef;
+
+    if (!defined $id || $id !~ /^[0-9a-f]{32}$/) {
+        $id = _random_id();
+        set_cookie(GUEST_COOKIE, $id, expires => '1 year', path => '/');
+    }
+
+    var guest_id => $id;
+    return $id;
+}
+
+sub _random_id {
+    my $bytes;
+    if (open my $fh, '<:raw', '/dev/urandom') {
+        read $fh, $bytes, 16;
+        close $fh;
+    }
+    if (!defined $bytes || length $bytes != 16) {
+        # Plenty good enough for telling party guests apart
+        $bytes = pack 'N4', map { int rand 2**32 } 1 .. 4;
+    }
+    return unpack 'H*', $bytes;
+}
+
+sub _queue_limit {
+    my $limit = config->{max_queued_per_person};
+    $limit = DEFAULT_QUEUE_LIMIT unless defined $limit;
+    # Numeric, not the string YAML handed us: it ends up in JSON, and "0"
+    # is perfectly truthy in JavaScript.
+    return $limit + 0;
+}
+
+# How many songs this person has waiting. Played ones don't count, so an
+# allowance frees itself up as their choices come round.
+sub _pending_count_for {
+    my $guest = shift;
+    return 0 unless defined $guest && length $guest;
+
+    my $sth = database->prepare(
+        'select count(*) from queue where played is null and queued_by = ?');
+    $sth->execute($guest);
+    my ($count) = $sth->fetchrow_array;
+    return $count || 0;
+}
+
+# Older installs won't have the columns we record the queuer in. Adding them
+# is additive and safe - existing rows get NULL, and count as nobody's.
+{
+    my $checked;
+    sub _ensure_schema {
+        return if $checked;
+        $checked = 1;
+
+        my $have = eval {
+            my $sth = database->prepare('select * from queue where 1 = 0');
+            $sth->execute;
+            my %cols = map { lc $_ => 1 } @{ $sth->{NAME_lc} || [] };
+            $sth->finish;
+            \%cols;
+        };
+        if (!$have) {
+            warning "Couldn't inspect the queue table: $@";
+            return;
+        }
+
+        for my $column (qw(queued_by ip)) {
+            next if $have->{$column};
+            debug "Adding '$column' column to the queue table";
+            eval { database->do("alter table queue add column $column text"); 1 }
+                or warning "Couldn't add '$column' to the queue table: $@";
+        }
+    }
+}
+
 
 ### Cover art ###############################################################
 

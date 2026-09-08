@@ -612,3 +612,15 @@ button.song:hover .song-action { background: var(--raised-hover); }
 .crumbs a:hover { color: var(--accent); }
 .crumbs .sep { color: var(--text-faint); }
 .crumbs [aria-current="page"] { color: var(--text); font-weight: 600; }
+
+/* Shown when someone's tried to queue past their allowance without JS */
+.queue-full {
+    margin: 0;
+    padding: 12px var(--pad);
+    background: rgba(255, 194, 51, 0.14);
+    border-bottom: 1px solid rgba(255, 194, 51, 0.4);
+    color: var(--accent);
+    font-weight: 600;
+    text-align: center;
+}
+.allowance { text-align: center; margin: 10px 0 4px; }

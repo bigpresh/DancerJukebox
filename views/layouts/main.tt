@@ -43,6 +43,12 @@
     <div class="progress" aria-hidden="true"><div class="bar"></div></div>
 </div>
 
+<!-- Shown when a queue attempt without JS bounced off the per-person limit -->
+[% IF queue_full %]
+<p class="queue-full">You&rsquo;ve already got [% your_pending %] songs waiting &ndash;
+hang on until one plays, then pick another.</p>
+[% END %]
+
 <!-- Read-only, and only shown when it's off - otherwise people wonder why
      their song never comes on. Turning it back on is an /admin job. -->
 [% IF !enabled %]

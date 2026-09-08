@@ -24,6 +24,17 @@
         &hellip; and <span class="queue-more-count">[% queued_total - queue_limit %]</span> more waiting
     </p>
 
+    [% IF queue_limit_per_person %]
+    <p class="hint allowance">
+        [% IF your_pending >= queue_limit_per_person %]
+        That&rsquo;s your [% queue_limit_per_person %] queued &ndash; pick another once one has played.
+        [% ELSE %]
+        You&rsquo;ve [% queue_limit_per_person - your_pending %] of
+        [% queue_limit_per_person %] picks left.
+        [% END %]
+    </p>
+    [% END %]
+
     <a class="btn btn-primary btn-block btn-big" href="/search">Queue a song</a>
 </section>
 

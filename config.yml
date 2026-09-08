@@ -11,6 +11,9 @@ music_dir: "/shared/music"
 # Cover thumbnails are generated once with ImageMagick and cached here.
 cover_cache: "covers-cache"
 cover_size: 300
+# How many songs one person may have waiting at once. Counts pending songs,
+# not lifetime, so an allowance frees up as your picks play. 0 = no limit.
+max_queued_per_person: 3
 # How much the front page shows before pointing you at a fuller listing
 home:
     queued_songs: 5
