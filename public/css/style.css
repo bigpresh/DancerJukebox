@@ -1,87 +1,532 @@
-BODY {
-    background-image: url(/images/turntable.jpg);
-    background-size: cover;
-    font-family:  Verdana, Arial;
-}
-P {
-    font-size: 14px;
+/* DancerJukebox
+ *
+ * Mobile-first, dark, and built for fingers rather than mice - the thing gets
+ * used on phones and tablets at parties, usually in a dim room by someone
+ * holding a drink in their other hand.
+ *
+ * Layout rules of thumb used throughout:
+ *   - nothing tappable is smaller than 48px in either direction
+ *   - inputs are >= 16px so mobile Safari doesn't zoom the page on focus
+ *   - one column on phones, two on anything wide enough to earn it
+ */
+
+:root {
+    --bg:           #0c0b10;
+    --panel:        rgba(24, 22, 32, 0.82);
+    --panel-solid:  #181620;
+    --raised:       rgba(255, 255, 255, 0.06);
+    --raised-hover: rgba(255, 255, 255, 0.12);
+    --line:         rgba(255, 255, 255, 0.10);
+    --line-strong:  rgba(255, 255, 255, 0.18);
+
+    --text:         #f2eee6;
+    --text-dim:     #a29caf;
+    --text-faint:   #6f6980;
+
+    --accent:       #ffc233;   /* jukebox amber - the "now / active" colour */
+    --accent-ink:   #2a1e00;   /* text on top of amber */
+    --good:         #4ad991;   /* queued OK */
+    --bad:          #ff5c72;   /* skip / dequeue / errors */
+
+    --radius:       14px;
+    --radius-sm:    10px;
+    --tap:          48px;      /* minimum touch target */
+
+    --gap:          12px;
+    --pad:          16px;
+
+    /* Height of the sticky now-playing bar, so content can clear it */
+    --nowbar:       88px;
+
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+            "Helvetica Neue", Arial, sans-serif;
 }
 
-#queued_songs LI {
-    font-size: 11px;
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+    /* Stop mobile browsers inflating text in landscape */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
 }
 
-#playlist_snippet LI {
-    font-size: 14px;
-}
-
-
-
-
-#header {
-    width: 95%;
-    margins: auto;
-    padding: 15px;
-    align: auto;
-    border: 1px solid yellow;
-    background: #008;
-    color: yellow;
-    font-family: Bitsumishi;
-}
-#header #name {
-    font-size: 26px;
-    font-weight: bold;
-}
-#header #author {
-    font-size: 18px;
-    font-weight: bold;
-}
-INPUT {
+body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: var(--font);
     font-size: 16px;
-    font-weight: bold;
-    padding: 4px;
+    line-height: 1.45;
+    color: var(--text);
+    background-color: var(--bg);
+    /* The turntable photo, heavily scrimmed so it's atmosphere rather than
+     * something you have to read text through. */
+    background-image:
+        linear-gradient(rgba(12, 11, 16, 0.88), rgba(12, 11, 16, 0.96)),
+        url(/images/turntable.jpg);
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    /* Keep clear of notches / home indicators */
+    padding:
+        env(safe-area-inset-top) env(safe-area-inset-right)
+        env(safe-area-inset-bottom) env(safe-area-inset-left);
+    /* Kill the 300ms tap delay and the grey flash on tap */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 
-UL#nav LI {
-    display: inline;
-    margin: 10px;
+/* Anchors jumped to shouldn't hide under the sticky bar */
+html { scroll-padding-top: calc(var(--nowbar) + 12px); }
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+h1, h2, h3 {
+    margin: 0 0 0.4em;
+    line-height: 1.2;
+    font-weight: 700;
+    letter-spacing: -0.01em;
 }
-UL#nav A {
-    display: block;
-    width: 120px;
-    float: left;
-    padding: 8px;
-    margin: 10px;
-    background: silver;
-    border: 1px solid #008;
-    font-size: 14px;
-    font-weight: bold;
+h1 { font-size: 1.5rem; }
+h2 { font-size: 1.15rem; }
+
+p { margin: 0 0 1em; }
+
+.muted { color: var(--text-dim); }
+.hint  { color: var(--text-dim); font-size: 0.875rem; }
+
+/* Visually hidden, but still read out by screen readers */
+.visually-hidden {
+    position: absolute; width: 1px; height: 1px;
+    margin: -1px; padding: 0; overflow: hidden;
+    clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
 }
 
-#playlist {
-    width: 500px;
-    float: left;
+
+/* ---------------------------------------------------------------- header  */
+
+.masthead {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 14px var(--pad) 10px;
 }
-#queue {
-    width: 500px;
-    float: right;
+.masthead .wordmark {
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--text);
 }
-#footer {
-    border-top: 1px solid #008;
+.masthead .wordmark .dancer { color: var(--accent); }
+.masthead .byline { font-size: 0.8rem; color: var(--text-faint); }
+
+
+/* ------------------------------------------------------- now playing bar  */
+
+/* Sticks to the top so you can always see what's on and hit skip, however
+ * far down a long search result list you've scrolled. */
+.nowbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: var(--gap);
+    padding: 10px var(--pad);
+    background: rgba(14, 13, 19, 0.94);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
 }
 
-#status {
-    font-weight: bold;
-    padding: 8px;
-    color: blue;
+.nowbar .art {
+    flex: 0 0 auto;
+    width: 44px; height: 44px;
+    display: grid; place-items: center;
+    border-radius: 50%;
+    background:
+        repeating-radial-gradient(circle at 50% 50%,
+            #1b1922 0 2px, #121016 2px 4px);
+    border: 1px solid var(--line-strong);
+}
+.nowbar .art::after {
+    content: "";
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--accent);
+}
+/* Spin the "record" only while something is actually playing */
+.nowbar.is-playing .art { animation: spin 3.6s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.nowbar .now-meta {
+    flex: 1 1 auto;
+    min-width: 0;          /* lets the ellipsis actually work inside flex */
+}
+.nowbar .now-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--accent);
+    font-weight: 700;
+}
+.nowbar .now-title,
+.nowbar .now-artist {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.nowbar .now-title  { font-weight: 700; font-size: 1rem; }
+.nowbar .now-artist { color: var(--text-dim); font-size: 0.875rem; }
+
+/* Thin progress line along the bottom edge of the bar */
+.nowbar .progress {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 3px;
+    background: var(--raised);
+}
+.nowbar .progress .bar {
+    height: 100%;
+    width: 0;
+    background: var(--accent);
+    transition: width 1s linear;
+}
+
+
+/* ------------------------------------------------------------- controls  */
+
+.btn {
+    /* Buttons and links styled as buttons share this */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: var(--tap);
+    padding: 0 18px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-sm);
+    background: var(--raised);
+    color: var(--text);
+    font: inherit;
+    font-weight: 600;
+    text-align: center;
     cursor: pointer;
+    touch-action: manipulation;
+    -webkit-appearance: none;
+    appearance: none;
+    transition: background 0.12s ease, transform 0.06s ease;
+}
+.btn:hover { background: var(--raised-hover); text-decoration: none; }
+.btn:active { transform: scale(0.97); }
+.btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+.btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-ink);
+}
+.btn-primary:hover { background: #ffcf5c; }
+
+.btn-danger { color: var(--bad); border-color: rgba(255, 92, 114, 0.45); }
+.btn-danger:hover { background: rgba(255, 92, 114, 0.14); }
+
+.btn-block { display: flex; width: 100%; }
+
+/* The main "go and queue something" call to action - deliberately hard to
+ * miss and hard to mis-tap. */
+.btn-big {
+    min-height: 60px;
+    font-size: 1.1rem;
+    margin-top: 4px;
+}
+
+/* Skip button lives in the now-playing bar */
+.nowbar .btn-skip {
+    flex: 0 0 auto;
+    min-width: var(--tap);
+    padding: 0 14px;
+}
+
+/* Jukebox enabled/disabled switch. It's a real <button> so it's keyboard
+ * and screen-reader friendly, styled to read as a toggle. */
+.power {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: var(--tap);
+    padding: 0 16px 0 12px;
+    border-radius: 999px;
+    border: 1px solid var(--line-strong);
+    background: var(--raised);
+    color: var(--text);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+.power .dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--text-faint);
+    box-shadow: 0 0 0 0 rgba(74, 217, 145, 0.5);
+}
+.power.is-on  { border-color: rgba(74, 217, 145, 0.5); }
+.power.is-on  .dot { background: var(--good); box-shadow: 0 0 10px var(--good); }
+.power.is-off { border-color: rgba(255, 92, 114, 0.5); color: var(--text-dim); }
+.power.is-off .dot { background: var(--bad); }
+.power:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+
+/* -------------------------------------------------------------- nav tabs  */
+
+.nav {
+    display: flex;
+    gap: 8px;
+    margin: 0;
+    padding: 10px var(--pad);
+    list-style: none;
+}
+.nav li { flex: 1 1 0; }
+.nav a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: var(--tap);
+    padding: 0 8px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--line);
+    background: var(--raised);
+    color: var(--text);
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+.nav a:hover { background: var(--raised-hover); text-decoration: none; }
+.nav a[aria-current="page"] {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-ink);
 }
 
 
-.songlist LI {
-    display: block;
-    border: 1px solid #666;
-    padding: 5px;
-    font-size: 14px;
+/* --------------------------------------------------------------- layout  */
+
+.wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 var(--pad) 40px;
 }
 
+.panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: var(--pad);
+    margin: 0 0 var(--gap);
+}
+.panel > h2 { display: flex; align-items: baseline; gap: 8px; }
+.panel > h2 .count {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--accent);
+    background: rgba(255, 194, 51, 0.14);
+    border-radius: 999px;
+    padding: 2px 9px;
+}
+
+[hidden] { display: none !important; }
+
+/* "... and 6 more waiting" under the shortened queue list */
+.queue-more { margin: 10px 0 14px; text-align: center; }
+
+
+/* ----------------------------------------------------------- song lists  */
+
+.songlist {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.songlist li + li { border-top: 1px solid var(--line); }
+
+/* Shared row layout. Rows come in two flavours: interactive ones (a whole-row
+ * button that queues the song) and inert ones (the read-only queue listing).
+ * Only the interactive ones get pointer/hover affordances, so nothing invites
+ * a tap that does nothing. */
+.song {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 60px;
+    padding: 10px 4px;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    border-radius: var(--radius-sm);
+}
+
+a.song, button.song {
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: background 0.12s ease;
+}
+a.song:hover, button.song:hover {
+    background: var(--raised);
+    text-decoration: none;
+}
+a.song:active, button.song:active { background: var(--raised-hover); }
+a.song:focus-visible, button.song:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: -3px;
+}
+
+.song .song-meta { flex: 1 1 auto; min-width: 0; }
+.song .song-title {
+    font-weight: 600;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.song .song-sub {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* The little circular action affordance on the right of each row */
+.song .song-action {
+    flex: 0 0 auto;
+    width: 40px; height: 40px;
+    display: grid; place-items: center;
+    border-radius: 50%;
+    border: 1px solid var(--line-strong);
+    color: var(--accent);
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1;
+}
+a.song:hover .song-action,
+button.song:hover .song-action { background: var(--raised-hover); }
+
+/* Position/queue index down the left */
+.song .song-index {
+    flex: 0 0 auto;
+    width: 26px;
+    text-align: right;
+    color: var(--text-faint);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+}
+
+/* Confirmation state after a one-tap queue */
+.song.is-queued { background: rgba(74, 217, 145, 0.12); }
+.song.is-queued .song-action {
+    color: var(--good);
+    border-color: rgba(74, 217, 145, 0.5);
+}
+.song.is-busy { opacity: 0.55; }
+
+.empty {
+    padding: 22px 4px;
+    color: var(--text-dim);
+    text-align: center;
+}
+
+
+/* ------------------------------------------------------------ searching  */
+
+/* Sticks under the now-playing bar so you can refine a search without
+ * scrolling back to the top. */
+.searchbar {
+    position: sticky;
+    top: var(--nowbar);
+    z-index: 10;
+    display: flex;
+    gap: 8px;
+    padding: 10px 0;
+    background: linear-gradient(var(--bg) 85%, rgba(12, 11, 16, 0));
+}
+.searchbar input[type="search"] {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: var(--tap);
+    padding: 0 16px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--line-strong);
+    background: var(--panel-solid);
+    color: var(--text);
+    font: inherit;
+    font-size: 1rem;          /* >= 16px: stops iOS zooming in on focus */
+    -webkit-appearance: none;
+    appearance: none;
+}
+.searchbar input[type="search"]::placeholder { color: var(--text-faint); }
+.searchbar input[type="search"]:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(255, 194, 51, 0.22);
+}
+
+
+/* ---------------------------------------------------------------- toast  */
+
+/* Replaces the old alert() - non-blocking, and doesn't need dismissing with
+ * a tiny OK button. */
+.toasts {
+    position: fixed;
+    left: 50%;
+    bottom: calc(18px + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: max-content;
+    max-width: calc(100vw - 32px);
+    pointer-events: none;
+}
+.toast {
+    padding: 12px 20px;
+    border-radius: 999px;
+    background: var(--panel-solid);
+    border: 1px solid var(--line-strong);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.55);
+    font-weight: 600;
+    animation: toast-in 0.18s ease-out;
+}
+.toast.good { border-color: rgba(74, 217, 145, 0.55); color: var(--good); }
+.toast.bad  { border-color: rgba(255, 92, 114, 0.55); color: var(--bad); }
+.toast.out  { animation: toast-out 0.25s ease-in forwards; }
+
+@keyframes toast-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: none; }
+}
+@keyframes toast-out {
+    to { opacity: 0; transform: translateY(10px); }
+}
+
+
+/* --------------------------------------------------------------- footer  */
+
+.footer {
+    padding: 20px var(--pad) 30px;
+    border-top: 1px solid var(--line);
+    color: var(--text-faint);
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+
+/* ------------------------------------------------------- accessibility  */
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+    }
+}

@@ -1,9 +1,14 @@
+yourmum: "fat"
 layout: "main"
 logger: "file"
 template: template_toolkit
 appname: "DancerJukebox"
 port: 4000
 random: 1
+# How much the front page shows before pointing you at a fuller listing
+home:
+    queued_songs: 5
+    popular_songs: 10
 playlist:
     tracks_before_current: 4
     tracks_after_current: 6

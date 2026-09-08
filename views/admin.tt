@@ -1,28 +1,93 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-<title>DancerJukebox mobile admin</title>
-<link rel="stylesheet" href="/css/admin.css" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0c0b10">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="robots" content="noindex">
+<title>DancerJukebox admin</title>
+<!-- Shares the main stylesheet so admin doesn't drift into looking like a
+     different app; it stays outside the normal layout so guests poking at the
+     nav can't wander into it by accident. -->
+<link rel="stylesheet" href="/css/style.css">
 </head>
 
 <body>
-<h1>DancerJukebox admin</h1>
 
-<p id="skip"><a href="/control/skip">Skip song</a></p> 
-<p id="current">Current song: [% current.title %]<p>
-[% IF queued %]
+<header class="masthead">
+    <span class="wordmark"><span class="dancer">Dancer</span>Jukebox</span>
+    <span class="byline">admin</span>
+</header>
 
-    <form method="post" action="/admin/dequeue">
+<div class="nowbar[% IF state == 'play' %] is-playing[% END %]">
+    <span class="art" aria-hidden="true"></span>
+    <div class="now-meta">
+        <div class="now-label">Now playing</div>
+        <div class="now-title">
+            [% IF current %][% current.display_title | html %][% ELSE %]Nothing playing[% END %]
+        </div>
+        <div class="now-artist">[% current.artist | html %]</div>
+    </div>
+    <span class="now-time muted hint" aria-hidden="true"></span>
+    <a class="btn btn-skip btn-danger" href="/control/skip" data-skip
+       aria-label="Skip to the next song">Skip</a>
+    <div class="progress" aria-hidden="true"><div class="bar"></div></div>
+</div>
 
-    [% FOR song IN queued %]
-        <label>
-        <input type="checkbox" name="id" value="[% song.id %]" />
-        [% song.path %]
-        </label>
-        <br />
+<main class="wrap">
+
+<section class="panel">
+    <h2>Queue <span class="count" id="queue_count">[% queued.size %]</span></h2>
+    <p class="hint">
+    Tap <strong>Remove</strong> to drop anything too crap, too offensive, or
+    played three times already tonight.
+    </p>
+
+    [% IF queued.size %]
+        <!-- One button per row: no hunting for a checkbox on a phone, and each
+             removal is a single deliberate tap. -->
+        <form method="post" action="/admin/dequeue">
+        <ul class="songlist">
+        [% FOREACH song IN queued %]
+            <li>
+            <div class="song">
+                <span class="song-index">[% loop.count %]</span>
+                <span class="song-meta">
+                    <span class="song-title">[% song.display_title | html %]</span>
+                    <span class="song-sub">[% song.artist | html %]</span>
+                </span>
+                <button class="btn btn-danger" type="submit" name="id"
+                        value="[% song.id %]">Remove</button>
+            </div>
+            </li>
+        [% END %]
+        </ul>
+        </form>
+    [% ELSE %]
+        <p class="empty">Queue is empty &ndash; nothing to moderate.</p>
     [% END %]
-    <input type="submit" value="De-queue selected" />
-    </form>
-[% END %]
+</section>
+
+<section class="panel">
+    <h2>Jukebox power</h2>
+    <p class="hint">
+    Turning the jukebox off stops it pulling songs from the queue, without
+    stopping whatever is playing right now.
+    </p>
+    <button type="button" class="power[% IF enabled %] is-on[% ELSE %] is-off[% END %]"
+            aria-pressed="[% enabled ? 'true' : 'false' %]">
+        <span class="dot" aria-hidden="true"></span>
+        <span class="power-label">[% enabled ? 'Jukebox on' : 'Jukebox off' %]</span>
+    </button>
+</section>
+
+<p><a class="btn btn-block" href="/">Back to the jukebox</a></p>
+
+</main>
+
+<div class="toasts" role="status" aria-live="polite"></div>
+
+<script src="/js/jukebox.js"></script>
 </body>
 </html>
-

@@ -1,36 +1,63 @@
+<section class="panel" id="queue">
+    <h2>Up next <span class="count" id="queue_count">[% queued_total %]</span></h2>
 
-<div id="playlist">
-
-<h2>Current Playlist</h2>
-<p>(This shows the songs around the current song, not the entire playlist)</p>
-
-<ul id="playlist_snippet">
-[% FOR song IN playlist_snippet %]
-<li>[% IF song.pos == current.pos %]<b>[% END %]
-    <a href="/control/play/[% song.pos %]" class="jumptopos">
-    [% IF song.title %]
-    [% song.title %] by [% song.artist %]
-    [% ELSE %]
-    [% song.file %]
+    <!-- Only the next few are listed; data-limit keeps the JS that refreshes
+         this list in step with what the server rendered. -->
+    <ul class="songlist" id="queued_songs" data-limit="[% queue_limit %]">
+    [% FOREACH song IN queued_songs %]
+        <li>
+        <div class="song">
+            <span class="song-index">[% loop.count %]</span>
+            <span class="song-meta">
+                <span class="song-title">[% song.display_title | html %]</span>
+                <span class="song-sub">[% song.artist | html %]</span>
+            </span>
+        </div>
+        </li>
     [% END %]
-    [% IF song.pos == current.pos %]</b>[% END %]
-    </a>
-</li>
-[% END %]
-</ul>
+    [% IF !queued_total %]
+        <li class="empty">Nothing queued &ndash; be the first!</li>
+    [% END %]
+    </ul>
 
-</div>
+    <p class="queue-more hint"[% IF queued_total <= queue_limit %] hidden[% END %]>
+        &hellip; and <span class="queue-more-count">[% queued_total - queue_limit %]</span> more waiting
+    </p>
 
-<div id="queue">
-<h2>Current Queue</h2>
+    <a class="btn btn-primary btn-block btn-big" href="/search">Queue a song</a>
+</section>
 
-<p>Songs currrently queued: 
+<section class="panel" id="popular">
+    <h2>Popular</h2>
+    <p class="hint">The most-queued songs on this jukebox. Tap one to add it
+    to the queue.</p>
 
-<ul id="queued_songs">
-[% FOR song IN queued_songs %]
-<li>[% song.path %]</li>
-[% END %]
-</ul>
+    [% IF popular.size %]
+        <form method="post" action="/enqueue">
+        <ul class="songlist">
+        [% FOREACH song IN popular %]
+            <li>
+            <button class="song" type="submit" name="song"
+                    value="[% song.path | html %]"
+                    data-queue="[% song.path | html %]"
+                    data-label="[% song.display_title | html %]">
+                <span class="song-index">[% loop.count %]</span>
+                <span class="song-meta">
+                    <span class="song-title">[% song.display_title | html %]</span>
+                    <span class="song-sub">[% song.artist | html %]</span>
+                </span>
+                <span class="song-action" aria-hidden="true">+</span>
+            </button>
+            </li>
+        [% END %]
+        </ul>
+        </form>
 
-
-</div>
+        <a class="btn btn-block" href="/popular">More popular songs</a>
+    [% ELSE %]
+        <p class="empty">
+        Nothing&rsquo;s been queued yet, so there&rsquo;s no chart yet.
+        <a href="/search">Pick the first song</a>.
+        </p>
+    [% END %]
+</section>
