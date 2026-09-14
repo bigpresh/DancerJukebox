@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="300" height="300"
+     role="img" aria-label="No cover art">
+  <defs>
+    <linearGradient id="sleeve" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#241f30"/>
+      <stop offset="1" stop-color="#15121d"/>
+    </linearGradient>
+    <radialGradient id="vinyl" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#2a2734"/>
+      <stop offset="1" stop-color="#141119"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="300" height="300" fill="url(#sleeve)"/>
+
+  <!-- record, peeking out of the sleeve -->
+  <g transform="translate(150 150)">
+    <circle r="88" fill="url(#vinyl)" stroke="rgba(255,255,255,0.08)"/>
+    <g fill="none" stroke="rgba(255,255,255,0.07)">
+      <circle r="78"/><circle r="70"/><circle r="62"/>
+      <circle r="54"/><circle r="46"/><circle r="38"/>
+    </g>
+    <circle r="27" fill="#ffc233"/>
+    <circle r="4.5" fill="#15121d"/>
+  </g>
+
+  <rect x="0.5" y="0.5" width="299" height="299" fill="none"
+        stroke="rgba(255,255,255,0.10)"/>
+</svg>

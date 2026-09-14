@@ -24,6 +24,50 @@ table.  SQL 'CREATE TABLE' statements for MySQL and SQLite are included.
 By default, the app will listen on port 4000; this can be changed by updating
 C<config.yml> appropriately.
 
+=head2 Browsable collections
+
+Guests who don't know what to search for can browse curated collections at
+C</browse>.  These are listed in C<config.yml> as directories within your MPD
+library, not as individual albums, so sub-folders (discs, per-year folders)
+are walked automatically and adding a new album needs no config change:
+
+    browse:
+        - name: "NOW That's What I Call Music"
+          path: "Compilation Albums/NOW Series"
+
+Nothing outside these directories can be browsed.
+
+Albums show their cover art, read from the album directory on disk
+(C<cover.jpg>, C<Front.jpg> and similar; back covers are skipped).  For this
+the app needs to know where your library lives:
+
+    music_dir: "/shared/music"
+
+Covers are thumbnailed once with ImageMagick's C<convert> and cached, since
+full-size artwork is far too heavy to show a grid of on a phone.  Without
+ImageMagick the originals are served instead.  A placeholder is shown for
+albums with no artwork.
+
+=head2 Keeping it fair
+
+To stop one enthusiast burying everyone else's choices, each person may have
+a limited number of songs I<waiting> at once:
+
+    max_queued_per_person: 3
+
+Because it counts songs still to play rather than songs queued all evening,
+an allowance frees itself up as your picks come round - so somebody on their
+own can keep the queue topped up, but nobody can stack fifty.  Set it to 0
+for no limit.
+
+People are identified by a random id in a cookie rather than by IP address,
+so a phone that changes address when it roams or renews its lease is still
+recognised.  It's a politeness mechanism, not access control.
+
+Visiting C</admin> exempts that browser from the limit, so you can queue
+freely from your own phone; there's a link there to put it back on the normal
+limit again.
+
 =head1 USAGE
 
 Start the app:

@@ -21,7 +21,7 @@ do_start() {
     chdir $DIR
     /sbin/start-stop-daemon --start --chuid $USER --chdir $DIR \
         --background --make-pidfile --pidfile $PIDFILE \
-        --startas $DIR/scripts/jukebox-queuerunner 
+        --startas $DIR/jukebox-queuerunner 
     log_end_msg $?
 }
 

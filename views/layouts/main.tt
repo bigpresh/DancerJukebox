@@ -1,75 +1,87 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
+<meta charset="utf-8">
+<!-- Without this, phones render the page at desktop width and you spend the
+     evening pinch-zooming to hit things. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0c0b10">
+<!-- Lets iOS/Android "add to home screen" run it like an app, which is handy
+     if you leave a tablet out for guests to use. -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>DancerJukebox</title>
-<script
-src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js"></script>
-<link rel="stylesheet" href="/css/style.css" />
-
-<script>
-function update_current_song() {
-    $.getJSON('/ajax/currentsong', function(song) {
-            $('#currentsong').html(
-                "Now playing <b>" + song.title + "</b> by <b>" + song.artist
-                + "</b>"
-            );
-    });
-    window.setTimeout(update_current_song, 4000);
-}
-function update_status() {
-    $.getJSON('/enabled', function(status) {
-        $('#status').html(
-            status.enabled ? 'enabled' : 'disabled'
-        );
-    });
-    window.setTimeout(update_status, 4000);
-}
-
-$(document).ready(function(){
-    update_current_song();
-    update_status();
-    $('#skipnext').click(function(){
-        $.getJSON('/control/skip');
-        update_current_song();
-        alert("OK, skipping");
-        return false;
-    });
-    $('#status').click(function(){
-        $.getJSON('/enabled?new_state=toggle');
-    });
-});
-</script>
+<link rel="stylesheet" href="/css/style.css">
 </head>
 
 <body>
 
-<div id="header">
-<div id="name">DancerJukebox</div>
-<div id="author">by David Precious</div>
+<header class="masthead">
+    <span class="wordmark"><span class="dancer">Dancer</span>Jukebox</span>
+    <span class="byline">by David Precious</span>
+</header>
+
+<!-- Now playing: sticky, so it stays reachable however far you've scrolled
+     down a list of search results. -->
+<div class="nowbar[% IF state == 'play' %] is-playing[% END %]">
+    <span class="art" aria-hidden="true"></span>
+
+    <div class="now-meta">
+        <div class="now-label">Now playing</div>
+        <div class="now-title">
+            [% IF current %][% current.display_title | html %][% ELSE %]Nothing playing[% END %]
+        </div>
+        <div class="now-artist">[% current.artist | html %]</div>
+    </div>
+
+    <span class="now-time muted hint" aria-hidden="true"></span>
+
+    <!-- No skip button here on purpose: guests queue songs, playback is
+         controlled from /admin. -->
+
+    <div class="progress" aria-hidden="true"><div class="bar"></div></div>
 </div>
-<ul id="nav">
-<li><a href="/">Home</a></li>
-<li><a href="/search">Search</a></li>
-<li><a href="/popular">Popular songs</a></li>
+
+<!-- Shown when a queue attempt without JS bounced off the per-person limit -->
+[% IF queue_full %]
+<p class="queue-full">You&rsquo;ve already got [% your_pending %] songs waiting &ndash;
+hang on until one plays, then pick another.</p>
+[% END %]
+
+<!-- Read-only, and only shown when it's off - otherwise people wonder why
+     their song never comes on. Turning it back on is an /admin job. -->
+[% IF !enabled %]
+<p class="jukebox-off">Jukebox is currently paused &ndash; songs you queue will
+play once it&rsquo;s switched back on.</p>
+[% END %]
+
+<nav>
+<ul class="nav">
+    <li><a href="/"[% IF page == 'home' %] aria-current="page"[% END %]>Queue</a></li>
+    <li><a href="/search"[% IF page == 'search' %] aria-current="page"[% END %]>Search</a></li>
+    <li><a href="/browse"[% IF page == 'browse' %] aria-current="page"[% END %]>Browse</a></li>
+    <li><a href="/popular"[% IF page == 'popular' %] aria-current="page"[% END %]>Popular</a></li>
 </ul>
+</nav>
 
-<p>Jukebox is <span id="status">broken</span></p>
-
-<br clear="both" />
-
-<p>
-<span id="currentsong"></span>
-<a href="/control/skipnext" id="skipnext">(skip)</a>
-</p>
+<main class="wrap">
 
 [% content %]
 
-<br clear="both" />
+</main>
 
-<div id="footer">
-<a href="http://github.com/bigpresh/DancerJukebox">DancerJukebox</a>
-by <a href="http://blog.preshweb.co.uk/">David Precious</a>,
-powered by <a href="http://www.perldancer.org/">Dancer</a>
-</div>
+<footer class="footer">
+    <p>
+    <a href="https://github.com/bigpresh/DancerJukebox">DancerJukebox</a>
+    by <a href="https://blog.preshweb.co.uk/">David Precious</a>,
+    powered by <a href="http://www.perldancer.org/">Dancer</a>
+    </p>
+</footer>
 
+<!-- Toast messages land here; aria-live so they're announced, not just seen -->
+<div class="toasts" role="status" aria-live="polite"></div>
+
+<script src="/js/jukebox.js"></script>
 </body>
 </html>
